@@ -1,43 +1,663 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>NAMA Invest</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <style>
-    body {
-      margin: 0;
-      padding: 24px;
-      font-family: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
-      background: var(--tg-theme-bg-color, #ffffff);
-      color: var(--tg-theme-text-color, #1a1a1a);
-    }
-    h1 { font-size: 22px; margin: 0 0 8px; }
-    p { margin: 0 0 16px; line-height: 1.5; color: var(--tg-theme-hint-color, #777777); }
-    #status {
-      padding: 16px;
-      border-radius: 10px;
-      background: var(--tg-theme-secondary-bg-color, #f2f2f2);
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NAMA Invest</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root {
+    --bg: var(--tg-theme-bg-color, #ffffff);
+    --bg2: var(--tg-theme-secondary-bg-color, #f2f2f0);
+    --text: var(--tg-theme-text-color, #1c1c1c);
+    --hint: var(--tg-theme-hint-color, #8a8a8a);
+    --line: rgba(128, 128, 128, 0.2);
+    --up: #2e7d4f;
+    --down: #b8433b;
+    --warn: #9a6a12;
+  }
+  html[data-scheme="dark"] {
+    --up: #63c08b;
+    --down: #ec6f66;
+    --warn: #d9a64a;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0;
+    font-family: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+    font-size: 16px;
+    line-height: 1.4;
+    background: var(--bg);
+    color: var(--text);
+  }
+  main { padding: 20px 16px calc(84px + env(safe-area-inset-bottom)); max-width: 560px; margin: 0 auto; }
+  h1 { font-size: 26px; font-weight: 700; margin: 4px 0 4px; letter-spacing: -0.3px; }
+  h2 { font-size: 15px; font-weight: 600; margin: 26px 0 8px; }
+  p { margin: 0 0 12px; }
+  .hint { color: var(--hint); font-size: 14px; }
+  .num { font-variant-numeric: tabular-nums; }
+  .big { font-size: 36px; font-weight: 650; letter-spacing: -0.8px; margin: 2px 0 2px; font-variant-numeric: tabular-nums; }
+  .up, .row .sub.up { color: var(--up); }
+  .down, .row .sub.down { color: var(--down); }
+
+  .group { background: var(--bg2); border-radius: 14px; overflow: hidden; margin: 0 0 8px; }
+  .row {
+    display: flex; align-items: center; gap: 12px;
+    width: 100%; padding: 13px 16px;
+    background: none; border: 0; border-bottom: 1px solid var(--line);
+    color: inherit; font: inherit; text-align: left; cursor: pointer;
+  }
+  .row:last-child { border-bottom: 0; }
+  .row.static { cursor: default; }
+  .row .main { flex: 1; min-width: 0; }
+  .row .title { font-weight: 500; }
+  .row .sub { font-size: 13px; color: var(--hint); margin-top: 1px; }
+  .row .right { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .row .right .sub { margin-top: 1px; }
+  .chev { color: var(--hint); font-size: 18px; }
+
+  .chip { display: inline-block; font-size: 12px; padding: 2px 7px; border-radius: 6px; border: 1px solid currentColor; white-space: nowrap; }
+  .chip.ok { color: var(--up); }
+  .chip.review { color: var(--warn); }
+  .chip.pending { color: var(--hint); }
+
+  .empty { padding: 18px 16px; color: var(--hint); font-size: 14px; }
+  .note { font-size: 12px; color: var(--hint); line-height: 1.5; margin: 18px 2px 0; }
+
+  .btn {
+    display: block; width: 100%; padding: 14px; margin-top: 12px;
+    border: 0; border-radius: 12px; cursor: pointer;
+    font: inherit; font-weight: 600;
+    background: var(--text); color: var(--bg);
+  }
+  .btn.ghost { background: var(--bg2); color: var(--text); }
+  .btn.danger { background: transparent; color: var(--down); }
+  .back { background: none; border: 0; color: var(--hint); font: inherit; padding: 0; margin-bottom: 12px; cursor: pointer; }
+
+  label { display: block; font-size: 14px; color: var(--hint); margin: 16px 0 6px; }
+  input, select {
+    width: 100%; padding: 12px 14px; font: inherit; font-size: 16px;
+    color: var(--text); background: var(--bg2);
+    border: 1px solid var(--line); border-radius: 10px; outline: none;
+    appearance: none; -webkit-appearance: none;
+  }
+  input:focus, select:focus { border-color: var(--hint); }
+  .field-hint { font-size: 12px; color: var(--hint); margin-top: 6px; }
+
+  .seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--bg2); border-radius: 10px; padding: 3px; }
+  .seg button { border: 0; background: none; padding: 9px; border-radius: 8px; color: var(--hint); font: inherit; font-size: 15px; cursor: pointer; }
+  .seg button.on { background: var(--bg); color: var(--text); font-weight: 600; }
+
+  .result { background: var(--bg2); border-radius: 14px; padding: 16px; margin-top: 20px; }
+  .result .line { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; font-variant-numeric: tabular-nums; }
+  .result .total { font-size: 22px; font-weight: 650; margin-top: 8px; }
+
+  .detail-row { display: flex; justify-content: space-between; gap: 16px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  .detail-row:last-child { border-bottom: 0; }
+  .detail-row span:first-child { color: var(--hint); }
+  .detail-row span:last-child { text-align: right; }
+
+  .lesson p { line-height: 1.6; }
+  .steps { counter-reset: s; padding: 0; margin: 0; list-style: none; }
+  .steps li { position: relative; padding: 0 0 16px 36px; line-height: 1.55; }
+  .steps li::before {
+    counter-increment: s; content: counter(s);
+    position: absolute; left: 0; top: 0;
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--bg2); font-size: 13px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  nav {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+    background: var(--bg); border-top: 1px solid var(--line);
+  }
+  nav button {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    background: none; border: 0; padding: 4px 0; cursor: pointer;
+    color: var(--hint); font: inherit; font-size: 11px;
+  }
+  nav button.on { color: var(--text); font-weight: 600; }
+  nav svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+</style>
 </head>
 <body>
-  <h1>NAMA Invest</h1>
-  <p>Тестовая страница. Если ниже твоё имя, приложение подключено к Telegram.</p>
-  <div id="status">Открыто в браузере, не в Telegram</div>
+<main id="app"><p class="hint">Загрузка…</p></main>
 
-  <script>
-    const tg = window.Telegram && window.Telegram.WebApp;
-    if (tg) {
-      tg.ready();
-      tg.expand();
-      const user = tg.initDataUnsafe && tg.initDataUnsafe.user;
-      if (user) {
-        document.getElementById('status').textContent =
-          'Привет, ' + user.first_name + '! Telegram подключён.';
-      }
+<nav id="nav">
+  <button data-tab="home">
+    <svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Главная
+  </button>
+  <button data-tab="sukuk">
+    <svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4"/><path d="M9 12h7M9 16h7"/></svg>Сукук
+  </button>
+  <button data-tab="stocks">
+    <svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>Акции
+  </button>
+  <button data-tab="crypto">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 8h3.5a2 2 0 0 1 0 4H9.5zM9.5 12h4a2 2 0 0 1 0 4h-4zM9.5 7v10"/></svg>Крипто
+  </button>
+  <button data-tab="other">
+    <svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg>Другое
+  </button>
+</nav>
+
+<script>
+// =====================================================================
+//  НАСТРОЙКИ, КОТОРЫЕ МОЖНО МЕНЯТЬ БЕЗ ПРОГРАММИСТА
+// =====================================================================
+
+// Username аккаунта поддержки без @. Пока пусто — в приложении будет «Скоро».
+const SUPPORT_USERNAME = '';
+
+// Статусы: 'ok' — разрешено, 'review' — на перепроверке, 'pending' — ждёт заключения.
+const CATALOG = {
+  sukuk: [
+    {
+      id: 'veb-59po', name: 'ВЭБ.РФ ПБО-002Р-59ПО', ticker: '', sector: 'Сукук аль-Мудараба',
+      status: 'ok', statusNote: 'Структура сукук аль-Мудараба: доход — доля прибыли проекта, а не процент.',
+      about: 'Выпущен ВЭБ.РФ, торгуется на Мосбирже. Перед покупкой уточните у брокера минимальный лот и доступность бумаги для частных инвесторов.'
     }
-  </script>
+  ],
+  stocks: [
+    { id: 'YDEX', name: 'Яндекс', ticker: 'YDEX', sector: 'IT: поиск, такси, доставка, облако', status: 'ok' },
+    { id: 'LKOH', name: 'Лукойл', ticker: 'LKOH', sector: 'Добыча и переработка нефти', status: 'ok' },
+    { id: 'MDMG', name: 'МД Медикал', ticker: 'MDMG', sector: 'Частные клиники «Мать и дитя»', status: 'ok' },
+    { id: 'TATN', name: 'Татнефть (обыкновенные)', ticker: 'TATN', sector: 'Добыча нефти и нефтехимия', status: 'ok' },
+    { id: 'NVTK', name: 'Новатэк', ticker: 'NVTK', sector: 'Добыча газа и СПГ', status: 'ok' },
+    { id: 'MAGN', name: 'ММК', ticker: 'MAGN', sector: 'Металлургия', status: 'ok' },
+    { id: 'NLMK', name: 'НЛМК', ticker: 'NLMK', sector: 'Металлургия', status: 'ok' },
+    { id: 'ALRS', name: 'Алроса', ticker: 'ALRS', sector: 'Добыча алмазов', status: 'ok' },
+    { id: 'ASTR', name: 'Астра', ticker: 'ASTR', sector: 'Российское ПО', status: 'ok' },
+    { id: 'AQUA', name: 'Инарктика', ticker: 'AQUA', sector: 'Выращивание рыбы', status: 'ok' },
+    { id: 'CHMF', name: 'Северсталь', ticker: 'CHMF', sector: 'Металлургия', status: 'review',
+      statusNote: 'Долг компании вырос. Нужна перепроверка по фильтру долга после свежей отчётности.' },
+    { id: 'HEAD', name: 'Хэдхантер', ticker: 'HEAD', sector: 'Сервис поиска работы', status: 'review',
+      statusNote: 'У компании большой запас денег. Процентный доход может превысить допустимые 5% выручки.' },
+    { id: 'POSI', name: 'Позитив', ticker: 'POSI', sector: 'Кибербезопасность', status: 'review',
+      statusNote: 'Долг компании заметно вырос. Нужна перепроверка по фильтру долга.' }
+  ],
+  crypto: [
+    { id: 'BTC', name: 'Bitcoin', ticker: 'BTC', sector: 'Криптовалюта', status: 'pending' },
+    { id: 'ETH', name: 'Ethereum', ticker: 'ETH', sector: 'Криптовалюта', status: 'pending' },
+    { id: 'TON', name: 'Toncoin', ticker: 'TON', sector: 'Криптовалюта', status: 'pending' }
+  ]
+};
+
+const STATUS = {
+  ok: 'Разрешено',
+  review: 'На перепроверке',
+  pending: 'Ждёт заключения'
+};
+
+const DEFAULT_NOTE = {
+  sukuk: '',
+  stocks: 'Входит в шариатский индекс Мосбиржи MXSHAR.',
+  crypto: 'Мнения учёных о криптовалюте расходятся. Ждём заключения нашего комитета.'
+};
+
+const SECTION_INFO = {
+  sukuk: { title: 'Сукук', note: 'Пока на Мосбирже один сукук. Список будет расти.' },
+  stocks: { title: 'Акции', note: 'Только обыкновенные акции: привилегированные большинство шариатских стандартов не допускает.' },
+  crypto: { title: 'Криптовалюта', note: 'Цены вводите в рублях за одну монету.' }
+};
+
+const LESSONS = [
+  {
+    id: 'basics', title: 'Что такое халяльные инвестиции',
+    body: [
+      'Ислам не запрещает инвестировать. Он запрещает конкретные вещи: рибу — гарантированный процент с займа, гарар — сделки с чрезмерной неопределённостью, майсир — азартную игру, и вложения в запрещённые отрасли: алкоголь, свинину, азартные игры, табак, обычные банки и страхование.',
+      'Поэтому вклад и обычная облигация не подходят: доход по ним — процент.',
+      'А акция компании с дозволенной деятельностью подходит. Покупая её, вы становитесь совладельцем бизнеса и делите с ним и прибыль, и риск.'
+    ]
+  },
+  {
+    id: 'screening', title: 'Как проверяют акции',
+    body: [
+      'Первый фильтр — деятельность. Основная выручка компании не должна идти из запрещённых отраслей.',
+      'Второй фильтр — финансы. По стандарту AAOIFI процентный долг компании не выше 30% её рыночной стоимости, процентные депозиты — тоже не выше 30%, а доход из запрещённых источников — меньше 5% выручки. У других стандартов пороги немного отличаются.',
+      'Компании отчитываются каждый квартал, и цифры меняются. Поэтому у бумаги может появиться статус «На перепроверке»: она была разрешена, но новые данные нужно проверить.'
+    ]
+  },
+  {
+    id: 'sukuk', title: 'Сукук и чем он отличается от облигации',
+    body: [
+      'Облигация — это долг: вы даёте деньги, эмитент возвращает их с фиксированным процентом.',
+      'Сукук — это доля в реальном активе или проекте. Доход держателя — часть прибыли или арендных платежей от этого актива.',
+      'В сукук аль-Мудараба инвестор даёт капитал, а эмитент управляет проектом. Прибыль делится в заранее оговорённой пропорции. Убыток капитала несёт инвестор, если управляющий не нарушил условия и не проявил халатность.'
+    ]
+  },
+  {
+    id: 'diversify', title: 'Диверсификация',
+    body: [
+      'Главное правило: не держать всё в одной бумаге и одной отрасли. Если у компании плохой год, он не должен разрушить весь портфель.',
+      'Уоррен Баффет держит небольшое число крупных, понятных ему компаний и годами их не продаёт. Рэй Далио распределяет деньги между разными классами активов, чтобы портфель переживал разные сценарии в экономике. Это идеи, а не готовые составы: например, у Далио есть облигации, которые нам не подходят.',
+      'Простые ориентиры: 8–15 бумаг, не больше четверти портфеля в одной отрасли, не больше 10–15% в одной бумаге, пересмотр долей раз в квартал.',
+      'Маржинальную торговлю и короткие продажи не используйте: это займы под процент.'
+    ]
+  },
+  {
+    id: 'purify', title: 'Очищение дохода',
+    body: [
+      'Даже у разрешённой компании может быть небольшая доля запрещённого дохода, например процент на остатках денег. Допускается до 5% выручки.',
+      'Эту часть ваших дивидендов отдают на садака, без намерения получить за это награду.',
+      'Пример: вы получили 1 000 ₽ дивидендов, у компании 2% запрещённого дохода. На очищение уходит 20 ₽.'
+    ]
+  },
+  {
+    id: 'scam', title: 'Как распознать мошенников',
+    body: [
+      'Признаки мошенничества: обещают гарантированную высокую доходность; называют продукт халяльным, но не говорят, какой совет его проверил; просят перевести деньги на карту частного лица или «управляющему»; торопят — «успейте сегодня»; у компании нет лицензии ЦБ.',
+      'Как проверить: брокер должен быть в справочнике участников финансового рынка на сайте ЦБ. Там же ЦБ ведёт список компаний с выявленными признаками нелегальной деятельности.'
+    ]
+  }
+];
+
+const GUIDE_STEPS = [
+  'Выберите брокера с лицензией ЦБ. Проверить лицензию можно в справочнике участников финансового рынка на сайте cbr.ru.',
+  'Откройте счёт в приложении брокера. Понадобится паспорт, часто — вход через Госуслуги.',
+  'Отключите начисление процентов на свободный остаток денег, если брокер его предлагает. Это риба.',
+  'Найдите бумагу по тикеру. Тикеры указаны в разделах «Сукук» и «Акции».',
+  'Покупайте лотами. Стоимость лота — цена бумаги, умноженная на количество бумаг в лоте.',
+  'Внесите покупку в NAMA: откройте нужный раздел и нажмите «Добавить актив».'
+];
+
+// =====================================================================
+//  ДАЛЬШЕ — КОД ПРИЛОЖЕНИЯ
+// =====================================================================
+
+const tg = window.Telegram ? window.Telegram.WebApp : null;
+const inTelegram = !!(tg && tg.platform && tg.platform !== 'unknown');
+const atLeast = v => !!(tg && typeof tg.isVersionAtLeast === 'function' && tg.isVersionAtLeast(v));
+const useCloud = inTelegram && atLeast('6.9') && !!tg.CloudStorage;
+
+const SECTIONS = ['sukuk', 'stocks', 'crypto'];
+const app = document.getElementById('app');
+const $ = s => document.querySelector(s);
+
+let pf = { sukuk: [], stocks: [], crypto: [] };
+let stack = [{ name: 'home' }];
+const zk = { basis: 'gold', gram: '', cash: '', inv: '', metal: '', recv: '', debt: '' };
+
+// ---------- форматирование ----------
+const nf = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 });
+const round2 = v => Math.round(v * 100) / 100;
+const rub = v => nf.format(round2(v)) + ' ₽';
+const sign = v => (v > 0 ? '+' : v < 0 ? '−' : '');
+const signedRub = v => sign(v) + nf.format(Math.abs(round2(v))) + ' ₽';
+const pctOf = (v, base) => base ? sign(v) + nf.format(Math.abs(round2(v / base * 100))) + '%' : '';
+const tone = v => (v > 0 ? 'up' : v < 0 ? 'down' : '');
+const num = s => { const n = parseFloat(String(s).replace(/\s/g, '').replace(',', '.')); return isFinite(n) ? n : NaN; };
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+// ---------- хранение ----------
+function storeGet(key) {
+  return new Promise(resolve => {
+    if (useCloud) {
+      tg.CloudStorage.getItem(key, (err, val) => resolve(err ? null : (val || null)));
+    } else {
+      try { resolve(localStorage.getItem(key)); } catch (e) { resolve(null); }
+    }
+  });
+}
+function storeSet(key, val) {
+  return new Promise(resolve => {
+    if (useCloud) {
+      tg.CloudStorage.setItem(key, val, err => resolve(!err));
+    } else {
+      try { localStorage.setItem(key, val); resolve(true); } catch (e) { resolve(false); }
+    }
+  });
+}
+async function loadAll() {
+  for (const s of SECTIONS) {
+    const raw = await storeGet('pf_' + s);
+    try { const arr = JSON.parse(raw); pf[s] = Array.isArray(arr) ? arr : []; } catch (e) { pf[s] = []; }
+  }
+}
+async function persist(sec) {
+  const data = JSON.stringify(pf[sec]);
+  if (data.length > 4000) { alertMsg('В разделе слишком много позиций. Удалите лишние.'); return false; }
+  const ok = await storeSet('pf_' + sec, data);
+  if (!ok) alertMsg('Не удалось сохранить. Проверьте интернет и попробуйте ещё раз.');
+  return ok;
+}
+
+// ---------- сообщения ----------
+function alertMsg(text) { if (inTelegram && atLeast('6.2')) tg.showAlert(text); else alert(text); }
+function confirmMsg(text, cb) { if (inTelegram && atLeast('6.2')) tg.showConfirm(text, cb); else cb(confirm(text)); }
+function haptic(type) { try { if (inTelegram && atLeast('6.1')) tg.HapticFeedback.notificationOccurred(type); } catch (e) {} }
+
+// ---------- расчёты ----------
+function secTotals(sec) {
+  let value = 0, cost = 0;
+  for (const p of pf[sec]) { value += p.q * p.p; cost += p.q * p.b; }
+  return { value, cost, pl: value - cost };
+}
+function allTotals() {
+  let value = 0, cost = 0;
+  for (const s of SECTIONS) { const t = secTotals(s); value += t.value; cost += t.cost; }
+  return { value, cost, pl: value - cost };
+}
+const findAsset = (sec, id) => CATALOG[sec].find(a => a.id === id);
+
+// ---------- навигация ----------
+const cur = () => stack[stack.length - 1];
+function go(name, params) { stack.push(Object.assign({ name }, params || {})); render(); }
+function back() { if (stack.length > 1) { stack.pop(); render(); } }
+function tab(name) { stack = [{ name }]; render(); }
+
+// ---------- общие куски разметки ----------
+const backLink = () => (!inTelegram && stack.length > 1) ? '<button class="back" data-act="back">Назад</button>' : '';
+const disclaimer = '<p class="note">Информация носит образовательный характер и не является индивидуальной инвестиционной рекомендацией.</p>';
+const chip = st => `<span class="chip ${st}">${STATUS[st]}</span>`;
+
+function positionRow(sec, p) {
+  const value = p.q * p.p, pl = value - p.q * p.b;
+  return `<button class="row" data-go="edit" data-sec="${sec}" data-pid="${esc(p.i)}">
+    <div class="main"><div class="title">${esc(p.n)}</div><div class="sub num">${nf.format(p.q)} шт.</div></div>
+    <div class="right"><div>${rub(value)}</div><div class="sub ${tone(pl)}">${signedRub(pl)}</div></div>
+  </button>`;
+}
+
+// ---------- экраны ----------
+const SCREENS = {
+  home() {
+    const t = allTotals();
+    const hasAny = SECTIONS.some(s => pf[s].length);
+    const rows = SECTIONS.map(s => {
+      const st = secTotals(s);
+      const share = t.value ? Math.round(st.value / t.value * 100) : 0;
+      return `<button class="row" data-tab="${s}">
+        <div class="main"><div class="title">${SECTION_INFO[s].title}</div><div class="sub">${pf[s].length ? share + '% портфеля' : 'Нет позиций'}</div></div>
+        <div class="right"><div>${rub(st.value)}</div><div class="sub ${tone(st.pl)}">${pf[s].length ? signedRub(st.pl) : ''}</div></div>
+        <span class="chev">›</span>
+      </button>`;
+    }).join('');
+    return `
+      <p class="hint">Стоимость портфеля</p>
+      <div class="big">${rub(t.value)}</div>
+      <div class="num ${tone(t.pl)}">${hasAny ? signedRub(t.pl) + ' ' + (t.cost ? '(' + pctOf(t.pl, t.cost) + ')' : '') : '&nbsp;'}</div>
+      <h2>Разделы</h2>
+      <div class="group">${rows}</div>
+      ${hasAny ? '' : '<p class="hint" style="margin-top:12px">Откройте раздел и добавьте свой первый актив.</p>'}
+      <p class="note">Текущие цены пока вводятся вручную. Скоро они будут обновляться автоматически.</p>
+      ${disclaimer}`;
+  },
+
+  section(c) {
+    const sec = c.name;
+    const info = SECTION_INFO[sec];
+    const st = secTotals(sec);
+    const mine = pf[sec].length
+      ? pf[sec].map(p => positionRow(sec, p)).join('')
+      : '<div class="empty">Здесь появятся ваши активы.</div>';
+    const catalog = CATALOG[sec].map(a => `
+      <button class="row" data-go="asset" data-sec="${sec}" data-id="${a.id}">
+        <div class="main"><div class="title">${esc(a.name)}</div><div class="sub">${esc(a.ticker ? a.ticker + ', ' + a.sector : a.sector)}</div></div>
+        ${chip(a.status)}
+      </button>`).join('');
+    return `
+      ${backLink()}
+      <h1>${info.title}</h1>
+      <div class="num">${rub(st.value)} <span class="${tone(st.pl)}">${pf[sec].length ? signedRub(st.pl) : ''}</span></div>
+      <h2>Мои позиции</h2>
+      <div class="group">${mine}</div>
+      <button class="btn" data-go="edit" data-sec="${sec}">Добавить актив</button>
+      <h2>Халяльные активы</h2>
+      <div class="group">${catalog}</div>
+      <p class="note">${info.note} Статусы подтверждает шариатский комитет NAMA.</p>
+      ${disclaimer}`;
+  },
+
+  asset(c) {
+    const a = findAsset(c.sec, c.id);
+    if (!a) return backLink() + '<p>Актив не найден.</p>';
+    const note = a.statusNote || DEFAULT_NOTE[c.sec];
+    return `
+      ${backLink()}
+      <h1>${esc(a.name)}</h1>
+      <p style="margin:8px 0 18px">${chip(a.status)}</p>
+      <div class="group">
+        ${a.ticker ? `<div class="detail-row"><span>Тикер</span><span>${esc(a.ticker)}</span></div>` : ''}
+        <div class="detail-row"><span>${c.sec === 'sukuk' ? 'Тип' : 'Отрасль'}</span><span>${esc(a.sector)}</span></div>
+        <div class="detail-row"><span>Раздел</span><span>${SECTION_INFO[c.sec].title}</span></div>
+      </div>
+      ${note ? `<h2>Статус</h2><p>${esc(note)}</p>` : ''}
+      ${a.about ? `<h2>О бумаге</h2><p>${esc(a.about)}</p>` : ''}
+      <button class="btn" data-go="edit" data-sec="${c.sec}" data-asset="${a.id}">Добавить в портфель</button>
+      ${disclaimer}`;
+  },
+
+  edit(c) {
+    const sec = c.sec;
+    const p = c.pid ? pf[sec].find(x => x.i === c.pid) : null;
+    const selected = p ? p.a : (c.asset || (CATALOG[sec][0] ? CATALOG[sec][0].id : ''));
+    const options = CATALOG[sec].map(a =>
+      `<option value="${a.id}" ${a.id === selected ? 'selected' : ''}>${esc(a.name)}${a.ticker ? ' (' + esc(a.ticker) + ')' : ''}</option>`
+    ).join('') + `<option value="" ${selected === '' ? 'selected' : ''}>Другой актив</option>`;
+    const unit = sec === 'crypto' ? 'монету' : 'бумагу';
+    return `
+      ${backLink()}
+      <h1>${p ? 'Изменить позицию' : 'Новая позиция'}</h1>
+      <p class="hint">${SECTION_INFO[sec].title}</p>
+      <label for="f-asset">Актив</label>
+      <select id="f-asset">${options}</select>
+      <div id="f-name-wrap" style="display:${selected === '' ? 'block' : 'none'}">
+        <label for="f-name">Название</label>
+        <input id="f-name" type="text" maxlength="40" value="${p && !p.a ? esc(p.n) : ''}" placeholder="Например, другой сукук">
+      </div>
+      <label for="f-q">Количество</label>
+      <input id="f-q" type="text" inputmode="decimal" value="${p ? p.q : ''}" placeholder="0">
+      <label for="f-b">Цена покупки за ${unit}, ₽</label>
+      <input id="f-b" type="text" inputmode="decimal" value="${p ? p.b : ''}" placeholder="0">
+      <label for="f-p">Текущая цена за ${unit}, ₽</label>
+      <input id="f-p" type="text" inputmode="decimal" value="${p ? p.p : ''}" placeholder="Если пусто — равна цене покупки">
+      <div class="field-hint">Пока вводится вручную. Скоро будет обновляться автоматически.</div>
+      <button class="btn" data-act="save">Сохранить</button>
+      ${p ? '<button class="btn danger" data-act="delete">Удалить позицию</button>' : ''}`;
+  },
+
+  other() {
+    const support = SUPPORT_USERNAME
+      ? `<button class="row" data-act="support"><div class="main"><div class="title">Поддержка</div><div class="sub">Чат с командой</div></div><span class="chev">›</span></button>`
+      : `<div class="row static"><div class="main"><div class="title">Поддержка</div></div><span class="hint">Скоро</span></div>`;
+    return `
+      <h1>Другое</h1>
+      <h2>Обучение</h2>
+      <div class="group">
+        <button class="row" data-go="lessons"><div class="main"><div class="title">Уроки</div><div class="sub">${LESSONS.length} коротких уроков</div></div><span class="chev">›</span></button>
+        <button class="row" data-go="guide"><div class="main"><div class="title">Как открыть брокерский счёт</div><div class="sub">Пошаговая инструкция</div></div><span class="chev">›</span></button>
+      </div>
+      <h2>Инструменты</h2>
+      <div class="group">
+        <button class="row" data-go="zakat"><div class="main"><div class="title">Калькулятор закята</div><div class="sub">По нисабу золота или серебра</div></div><span class="chev">›</span></button>
+        <div class="row static"><div class="main"><div class="title">Привязка брокерского счёта</div></div><span class="hint">Скоро</span></div>
+        <div class="row static"><div class="main"><div class="title">Обменник</div></div><span class="hint">Скоро</span></div>
+      </div>
+      <h2>Связь</h2>
+      <div class="group">${support}</div>`;
+  },
+
+  lessons() {
+    return `
+      ${backLink()}
+      <h1>Уроки</h1>
+      <div class="group" style="margin-top:16px">
+        ${LESSONS.map((l, i) => `<button class="row" data-go="lesson" data-id="${l.id}">
+          <div class="main"><div class="sub">Урок ${i + 1}</div><div class="title">${esc(l.title)}</div></div><span class="chev">›</span>
+        </button>`).join('')}
+      </div>`;
+  },
+
+  lesson(c) {
+    const idx = LESSONS.findIndex(l => l.id === c.id);
+    const l = LESSONS[idx];
+    if (!l) return backLink() + '<p>Урок не найден.</p>';
+    const next = LESSONS[idx + 1];
+    return `
+      ${backLink()}
+      <p class="hint">Урок ${idx + 1} из ${LESSONS.length}</p>
+      <h1>${esc(l.title)}</h1>
+      <div class="lesson" style="margin-top:14px">${l.body.map(t => `<p>${esc(t)}</p>`).join('')}</div>
+      ${next ? `<button class="btn ghost" data-act="next-lesson" data-id="${next.id}">Следующий урок</button>` : ''}`;
+  },
+
+  guide() {
+    return `
+      ${backLink()}
+      <h1>Как открыть брокерский счёт</h1>
+      <ol class="steps" style="margin-top:18px">${GUIDE_STEPS.map(s => `<li>${esc(s)}</li>`).join('')}</ol>
+      ${disclaimer}`;
+  },
+
+  zakat() {
+    const field = (key, title, hint) => `
+      <label for="zk-${key}">${title}</label>
+      <input id="zk-${key}" data-zk="${key}" type="text" inputmode="decimal" value="${esc(zk[key])}" placeholder="0">
+      ${hint ? `<div class="field-hint">${hint}</div>` : ''}`;
+    return `
+      ${backLink()}
+      <h1>Калькулятор закята</h1>
+      <label>Нисаб считать по</label>
+      <div class="seg">
+        <button data-act="zk-basis" data-v="gold" class="${zk.basis === 'gold' ? 'on' : ''}">Золоту, 85 г</button>
+        <button data-act="zk-basis" data-v="silver" class="${zk.basis === 'silver' ? 'on' : ''}">Серебру, 595 г</button>
+      </div>
+      ${field('gram', `Цена 1 грамма ${zk.basis === 'gold' ? 'золота' : 'серебра'}, ₽`, 'Актуальную цену можно посмотреть на сайте ЦБ: учётные цены на драгоценные металлы.')}
+      <h2>Ваше имущество</h2>
+      ${field('cash', 'Наличные и деньги на счетах, ₽')}
+      ${field('inv', 'Инвестиции, ₽')}
+      <button class="btn ghost" data-act="zk-fill">Взять из портфеля: ${rub(allTotals().value)}</button>
+      ${field('metal', 'Золото и серебро, ₽', 'Стоимость украшений и слитков.')}
+      ${field('recv', 'Долги вам, ₽', 'Только те, которые вам реально вернут.')}
+      <h2>Вычеты</h2>
+      ${field('debt', 'Ваши долги к оплате, ₽')}
+      <div class="result" id="zk-result">${zakatResult()}</div>
+      <p class="note">Закят обязателен, если сумма не опускалась ниже нисаба в течение лунного года. По акциям мнения учёных расходятся: одни берут полную рыночную стоимость, другие — только долю оборотных активов компании. Калькулятор считает по полной стоимости, это осторожный вариант.</p>`;
+  }
+};
+['sukuk', 'stocks', 'crypto'].forEach(s => { SCREENS[s] = SCREENS.section; });
+
+function zakatResult() {
+  const v = k => { const n = num(zk[k]); return isNaN(n) ? 0 : n; };
+  const grams = zk.basis === 'gold' ? 85 : 595;
+  const gram = num(zk.gram);
+  const net = v('cash') + v('inv') + v('metal') + v('recv') - v('debt');
+  if (!(gram > 0)) return '<div class="hint">Введите цену грамма, чтобы рассчитать нисаб.</div>';
+  const nisab = grams * gram;
+  let out = `<div class="line"><span class="hint">Нисаб</span><span>${rub(nisab)}</span></div>
+             <div class="line"><span class="hint">Облагаемая сумма</span><span>${rub(net)}</span></div>`;
+  if (net < nisab) out += '<div class="total">Закят не обязателен</div><div class="hint">Сумма ниже нисаба.</div>';
+  else out += `<div class="line"><span class="hint">Ставка</span><span>2,5%</span></div><div class="total">К выплате: ${rub(net * 0.025)}</div>`;
+  return out;
+}
+
+// ---------- действия ----------
+async function savePosition() {
+  const c = cur(), sec = c.sec;
+  const aid = $('#f-asset').value;
+  const asset = findAsset(sec, aid);
+  const name = asset ? asset.name : $('#f-name').value.trim();
+  const q = num($('#f-q').value), b = num($('#f-b').value);
+  let price = num($('#f-p').value);
+  if (!name) return alertMsg('Укажите название актива.');
+  if (!(q > 0)) return alertMsg('Укажите количество больше нуля.');
+  if (isNaN(b) || b < 0) return alertMsg('Укажите цену покупки.');
+  if (isNaN(price) || price < 0) price = b;
+
+  const data = { a: asset ? asset.id : '', n: name, q, b, p: price };
+  const before = JSON.stringify(pf[sec]);
+  if (c.pid) {
+    const p = pf[sec].find(x => x.i === c.pid);
+    if (p) Object.assign(p, data);
+  } else {
+    pf[sec].push(Object.assign({ i: Date.now().toString(36) }, data));
+  }
+  if (await persist(sec)) { haptic('success'); tab(sec); }
+  else pf[sec] = JSON.parse(before);
+}
+
+function deletePosition() {
+  const c = cur(), sec = c.sec;
+  confirmMsg('Удалить позицию?', async ok => {
+    if (!ok) return;
+    const before = pf[sec];
+    pf[sec] = pf[sec].filter(x => x.i !== c.pid);
+    if (await persist(sec)) { haptic('success'); tab(sec); }
+    else pf[sec] = before;
+  });
+}
+
+const ACTIONS = {
+  back,
+  save: savePosition,
+  delete: deletePosition,
+  support: () => {
+    const url = 'https://t.me/' + SUPPORT_USERNAME;
+    if (inTelegram) tg.openTelegramLink(url); else window.open(url, '_blank');
+  },
+  'next-lesson': el => { stack[stack.length - 1] = { name: 'lesson', id: el.dataset.id }; render(); },
+  'zk-basis': el => { zk.basis = el.dataset.v; render(false); },
+  'zk-fill': () => { zk.inv = String(round2(allTotals().value)); render(false); }
+};
+
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-tab],[data-go],[data-act]');
+  if (!el) return;
+  if (el.dataset.tab) return tab(el.dataset.tab);
+  if (el.dataset.go) {
+    const params = Object.assign({}, el.dataset);
+    delete params.go;
+    return go(el.dataset.go, params);
+  }
+  const fn = ACTIONS[el.dataset.act];
+  if (fn) fn(el);
+});
+
+document.addEventListener('input', e => {
+  const key = e.target.dataset && e.target.dataset.zk;
+  if (key) { zk[key] = e.target.value; const r = $('#zk-result'); if (r) r.innerHTML = zakatResult(); }
+});
+
+document.addEventListener('change', e => {
+  if (e.target.id === 'f-asset') $('#f-name-wrap').style.display = e.target.value === '' ? 'block' : 'none';
+});
+
+// ---------- отрисовка ----------
+function render(resetScroll = true) {
+  const c = cur();
+  const screen = SCREENS[c.name] || SCREENS.home;
+  app.innerHTML = screen(c);
+  const root = stack[0].name;
+  document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === root));
+  if (inTelegram && atLeast('6.1')) { stack.length > 1 ? tg.BackButton.show() : tg.BackButton.hide(); }
+  if (resetScroll) window.scrollTo(0, 0);
+}
+
+function applyScheme() {
+  let dark = false;
+  if (inTelegram) dark = tg.colorScheme === 'dark';
+  else { try { dark = window.matchMedia('(prefers-color-scheme: dark)').matches; } catch (e) {} }
+  document.documentElement.dataset.scheme = dark ? 'dark' : 'light';
+}
+
+async function init() {
+  applyScheme();
+  if (inTelegram) {
+    tg.ready();
+    tg.expand();
+    try { if (atLeast('6.1')) { tg.setHeaderColor('bg_color'); tg.setBackgroundColor('bg_color'); } } catch (e) {}
+    try { if (atLeast('7.7')) tg.disableVerticalSwipes(); } catch (e) {}
+    if (atLeast('6.1')) tg.BackButton.onClick(back);
+    tg.onEvent('themeChanged', applyScheme);
+  }
+  await loadAll();
+  render();
+}
+init();
+</script>
 </body>
 </html>
