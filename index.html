@@ -88,6 +88,9 @@
   .seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--bg2); border-radius: 10px; padding: 3px; }
   .seg button { border: 0; background: none; padding: 9px; border-radius: 8px; color: var(--hint); font: inherit; font-size: 15px; cursor: pointer; }
   .seg button.on { background: var(--bg); color: var(--text); font-weight: 600; }
+  .head-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .seg-sm { grid-template-columns: auto auto; flex-shrink: 0; }
+  .seg-sm button { padding: 6px 14px; font-size: 15px; min-width: 44px; }
 
   .result { background: var(--bg2); border-radius: 14px; padding: 16px; margin-top: 20px; }
   .result .line { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; font-variant-numeric: tabular-nums; }
@@ -203,7 +206,7 @@ const DEFAULT_NOTE = {
 const SECTION_INFO = {
   sukuk: { title: 'Сукук', note: 'Пока на Мосбирже один сукук. Список будет расти.' },
   stocks: { title: 'Акции', note: 'Только обыкновенные акции: привилегированные большинство шариатских стандартов не допускает.' },
-  crypto: { title: 'Криптовалюта', note: 'Цены в рублях за одну монету, источник — CoinGecko.' }
+  crypto: { title: 'Криптовалюта', note: 'Цены за одну монету, источник — CoinGecko. Покупки, внесённые в другой валюте, пересчитываются по текущему курсу.' }
 };
 
 const LESSONS = [
@@ -289,6 +292,13 @@ const round2 = v => Math.round(v * 100) / 100;
 const rub = v => nf.format(round2(v)) + ' ₽';
 const sign = v => (v > 0 ? '+' : v < 0 ? '−' : '');
 const signedRub = v => sign(v) + nf.format(Math.abs(round2(v))) + ' ₽';
+const SYM = { rub: '₽', usd: '$' };
+const money = (v, c = 'rub') => nf.format(round2(v)) + ' ' + SYM[c];
+const signedMoney = (v, c = 'rub') => sign(v) + nf.format(Math.abs(round2(v))) + ' ' + SYM[c];
+
+// Валюта отображения: в разделе «Криптовалюта» её выбирает пользователь, в остальных — рубль.
+let cryptoCur = 'rub';
+const dispCur = sec => (sec === 'crypto' ? cryptoCur : 'rub');
 const pctOf = (v, base) => base ? sign(v) + nf.format(Math.abs(round2(v / base * 100))) + '%' : '';
 const tone = v => (v > 0 ? 'up' : v < 0 ? 'down' : '');
 const num = s => { const n = parseFloat(String(s).replace(/\s/g, '').replace(',', '.')); return isFinite(n) ? n : NaN; };
@@ -318,6 +328,8 @@ async function loadAll() {
     const raw = await storeGet('pf_' + s);
     try { const arr = JSON.parse(raw); pf[s] = Array.isArray(arr) ? arr : []; } catch (e) { pf[s] = []; }
   }
+  const c = await storeGet('cur_crypto');
+  if (c === 'rub' || c === 'usd') cryptoCur = c;
 }
 async function persist(sec) {
   const data = JSON.stringify(pf[sec]);
@@ -335,7 +347,11 @@ function haptic(type) { try { if (inTelegram && atLeast('6.1')) tg.HapticFeedbac
 // ---------- живые цены ----------
 const prices = {};                         // id актива → цена за 1 шт. в рублях
 const changes = {};                        // id актива → изменение цены за день, %
-const setChange = (id, v) => { if (typeof v === 'number' && isFinite(v)) changes[id] = v; };
+const setChange = (id, v, target = changes) => { if (typeof v === 'number' && isFinite(v)) target[id] = v; };
+const pricesUsd = {};                      // крипта: цена в долларах
+const changesUsd = {};
+let usdRub = null;                         // курс доллара в рублях
+try { const r = parseFloat(localStorage.getItem('usd_rub')); if (r > 0) usdRub = r; } catch (e) {}
 const priceErr = { moex: false, cg: false };
 let pricesAt = null;
 
@@ -380,11 +396,21 @@ async function loadSukukPrices() {
 async function loadCryptoPrices() {
   const ids = CATALOG.crypto.map(a => a.cg).filter(Boolean).join(',');
   if (!ids) return;
-  const j = await fetchJSON('https://api.coingecko.com/api/v3/simple/price?ids=' + ids + '&vs_currencies=rub&include_24hr_change=true');
+  const j = await fetchJSON('https://api.coingecko.com/api/v3/simple/price?ids=' + ids + '&vs_currencies=rub,usd&include_24hr_change=true');
+  const rates = [];
   CATALOG.crypto.forEach(a => {
-    if (j[a.cg] && j[a.cg].rub > 0) prices[a.id] = j[a.cg].rub;
-    if (j[a.cg]) setChange(a.id, j[a.cg].rub_24h_change);
+    const d = j[a.cg];
+    if (!d) return;
+    if (d.rub > 0) prices[a.id] = d.rub;
+    if (d.usd > 0) pricesUsd[a.id] = d.usd;
+    if (d.rub > 0 && d.usd > 0) rates.push(d.rub / d.usd);
+    setChange(a.id, d.rub_24h_change);
+    setChange(a.id, d.usd_24h_change, changesUsd);
   });
+  if (rates.length) {
+    usdRub = rates.reduce((s, r) => s + r, 0) / rates.length;
+    try { localStorage.setItem('usd_rub', String(usdRub)); } catch (e) {}
+  }
 }
 
 async function refreshPrices() {
@@ -405,22 +431,32 @@ function priceStatus() {
   return s;
 }
 
-const livePrice = id => (id && prices[id] > 0) ? prices[id] : null;
-function changeHtml(id) {
-  const v = changes[id];
+function livePrice(id, c = 'rub') {
+  const src = c === 'usd' ? pricesUsd : prices;
+  return (id && src[id] > 0) ? src[id] : null;
+}
+function changeHtml(id, c = 'rub') {
+  const v = (c === 'usd' ? changesUsd : changes)[id];
   if (typeof v !== 'number') return '';
   return ` <span class="${tone(v)}">${sign(v)}${nf.format(Math.abs(round2(v)))}%</span>`;
 }
-function priceLine(id) {
-  const v = livePrice(id);
-  return v ? `<span class="num">${rub(v)}${changeHtml(id)}</span>` : '';
+function priceLine(id, c = 'rub') {
+  const v = livePrice(id, c);
+  return v ? `<span class="num">${money(v, c)}${changeHtml(id, c)}</span>` : '';
 }
-const priceOf = p => livePrice(p.a) || p.p;
+// Перевод суммы между рублём и долларом по текущему курсу.
+function conv(v, from, to) {
+  if (from === to || !usdRub) return v;
+  return from === 'usd' ? v * usdRub : v / usdRub;
+}
+const posCur = p => p.c || 'rub';
+const priceOf = (p, c = 'rub') => livePrice(p.a, c) || conv(p.p, posCur(p), c);
+const costOf = (p, c = 'rub') => conv(p.b, posCur(p), c);
 
 // ---------- расчёты ----------
-function secTotals(sec) {
+function secTotals(sec, c = 'rub') {
   let value = 0, cost = 0;
-  for (const p of pf[sec]) { value += p.q * priceOf(p); cost += p.q * p.b; }
+  for (const p of pf[sec]) { value += p.q * priceOf(p, c); cost += p.q * costOf(p, c); }
   return { value, cost, pl: value - cost };
 }
 function allTotals() {
@@ -442,12 +478,26 @@ const disclaimer = '<p class="note">Информация носит образо
 const chip = st => `<span class="chip ${st}">${STATUS[st]}</span>`;
 
 function positionRow(sec, p) {
-  const value = p.q * priceOf(p), pl = value - p.q * p.b;
+  const c = dispCur(sec);
+  const price = priceOf(p, c);
+  const value = p.q * price, pl = value - p.q * costOf(p, c);
   return `<button class="row" data-go="edit" data-sec="${sec}" data-pid="${esc(p.i)}">
-    <div class="main"><div class="title">${esc(p.n)}</div><div class="sub num">${nf.format(p.q)} шт. по ${rub(priceOf(p))}${p.a ? changeHtml(p.a) : ''}</div></div>
-    <div class="right"><div>${rub(value)}</div><div class="sub ${tone(pl)}">${signedRub(pl)}</div></div>
+    <div class="main"><div class="title">${esc(p.n)}</div><div class="sub num">${nf.format(p.q)} шт. по ${money(price, c)}${p.a ? changeHtml(p.a, c) : ''}</div></div>
+    <div class="right"><div>${money(value, c)}</div><div class="sub ${tone(pl)}">${signedMoney(pl, c)}</div></div>
   </button>`;
 }
+
+// Валюта формы: у существующей позиции — та, в которой её внесли; у новой — выбранная в разделе.
+function editCur(c) {
+  const p = c.pid ? pf[c.sec].find(x => x.i === c.pid) : null;
+  return p ? posCur(p) : dispCur(c.sec);
+}
+
+const curSwitch = () => `
+  <div class="seg seg-sm" role="group" aria-label="Валюта">
+    <button data-act="set-cur" data-v="rub" class="${cryptoCur === 'rub' ? 'on' : ''}" aria-pressed="${cryptoCur === 'rub'}">₽</button>
+    <button data-act="set-cur" data-v="usd" class="${cryptoCur === 'usd' ? 'on' : ''}" aria-pressed="${cryptoCur === 'usd'}">$</button>
+  </div>`;
 
 // ---------- экраны ----------
 const SCREENS = {
@@ -477,19 +527,21 @@ const SCREENS = {
   section(c) {
     const sec = c.name;
     const info = SECTION_INFO[sec];
-    const st = secTotals(sec);
+    const cu = dispCur(sec);
+    const st = secTotals(sec, cu);
     const mine = pf[sec].length
       ? pf[sec].map(p => positionRow(sec, p)).join('')
       : '<div class="empty">Здесь появятся ваши активы.</div>';
     const catalog = CATALOG[sec].map(a => `
       <button class="row" data-go="asset" data-sec="${sec}" data-id="${a.id}">
         <div class="main"><div class="title">${esc(a.name)}</div><div class="sub">${esc(sec === 'sukuk' ? a.sector : (a.ticker ? a.ticker + ', ' + a.sector : a.sector))}</div></div>
-        <div class="right-stack">${priceLine(a.id)}${chip(a.status)}</div>
+        <div class="right-stack">${priceLine(a.id, cu)}${chip(a.status)}</div>
       </button>`).join('');
     return `
       ${backLink()}
-      <h1>${info.title}</h1>
-      <div class="num">${rub(st.value)} <span class="${tone(st.pl)}">${pf[sec].length ? signedRub(st.pl) : ''}</span></div>
+      <div class="head-row"><h1>${info.title}</h1>${sec === 'crypto' ? curSwitch() : ''}</div>
+      <div class="num">${money(st.value, cu)} <span class="${tone(st.pl)}">${pf[sec].length ? signedMoney(st.pl, cu) : ''}</span></div>
+      ${sec === 'crypto' && usdRub ? `<div class="hint num" style="margin-top:2px">Курс: 1 $ = ${rub(usdRub)}</div>` : ''}
       <h2>Мои позиции</h2>
       <div class="group">${mine}</div>
       <button class="btn" data-go="edit" data-sec="${sec}">Добавить актив</button>
@@ -509,7 +561,7 @@ const SCREENS = {
       <h1>${esc(a.name)}</h1>
       <p style="margin:8px 0 18px">${chip(a.status)}</p>
       <div class="group">
-        <div class="detail-row"><span>Цена</span><span class="num">${livePrice(a.id) ? priceLine(a.id) : 'Нет данных'}</span></div>
+        <div class="detail-row"><span>Цена</span><span class="num">${livePrice(a.id, dispCur(c.sec)) ? priceLine(a.id, dispCur(c.sec)) : 'Нет данных'}</span></div>
         ${a.ticker ? `<div class="detail-row"><span>${c.sec === 'sukuk' ? 'Код (ISIN)' : 'Тикер'}</span><span>${esc(a.ticker)}</span></div>` : ''}
         <div class="detail-row"><span>${c.sec === 'sukuk' ? 'Тип' : 'Отрасль'}</span><span>${esc(a.sector)}</span></div>
         <div class="detail-row"><span>Раздел</span><span>${SECTION_INFO[c.sec].title}</span></div>
@@ -528,6 +580,7 @@ const SCREENS = {
       `<option value="${a.id}" ${a.id === selected ? 'selected' : ''}>${esc(a.name)}${a.ticker ? ' (' + esc(a.ticker) + ')' : ''}</option>`
     ).join('') + `<option value="" ${selected === '' ? 'selected' : ''}>Другой актив</option>`;
     const unit = sec === 'crypto' ? 'монету' : 'бумагу';
+    const sym = SYM[editCur(c)];
     return `
       ${backLink()}
       <h1>${p ? 'Изменить позицию' : 'Новая позиция'}</h1>
@@ -540,12 +593,12 @@ const SCREENS = {
       </div>
       <label for="f-q">Количество</label>
       <input id="f-q" type="text" inputmode="decimal" value="${p ? p.q : ''}" placeholder="0">
-      <label for="f-b">Цена покупки за ${unit}, ₽</label>
+      <label for="f-b">Цена покупки за ${unit}, ${sym}</label>
       <input id="f-b" type="text" inputmode="decimal" value="${p ? p.b : ''}" placeholder="0">
       ${sec === 'sukuk' ? '<div class="field-hint">Брокер показывает цену в процентах от номинала 1 000 ₽. Например, 100,67% — это 1 006,70 ₽.</div>' : ''}
       <div id="f-live" class="field-hint" style="font-size:14px;margin-top:16px"></div>
       <div id="f-p-wrap">
-        <label for="f-p">Текущая цена за ${unit}, ₽</label>
+        <label for="f-p">Текущая цена за ${unit}, ${sym}</label>
         <input id="f-p" type="text" inputmode="decimal" value="${p ? p.p : ''}" placeholder="Если пусто — равна цене покупки">
         <div class="field-hint">Для этого актива цена вводится вручную.</div>
       </div>
@@ -660,10 +713,11 @@ async function savePosition() {
   if (!(q > 0)) return alertMsg('Укажите количество больше нуля.');
   if (isNaN(b) || b < 0) return alertMsg('Укажите цену покупки.');
   if (isNaN(price) || price < 0) price = b;
-  const live = asset ? livePrice(asset.id) : null;
+  const fc = editCur(c);
+  const live = asset ? livePrice(asset.id, fc) : null;
   if (live) price = live;
 
-  const data = { a: asset ? asset.id : '', n: name, q, b, p: price };
+  const data = { a: asset ? asset.id : '', n: name, q, b, p: price, c: fc };
   const before = JSON.stringify(pf[sec]);
   if (c.pid) {
     const p = pf[sec].find(x => x.i === c.pid);
@@ -696,6 +750,12 @@ const ACTIONS = {
   },
   'next-lesson': el => { stack[stack.length - 1] = { name: 'lesson', id: el.dataset.id }; render(); },
   'zk-basis': el => { zk.basis = el.dataset.v; render(false); },
+  'set-cur': el => {
+    if (cryptoCur === el.dataset.v) return;
+    cryptoCur = el.dataset.v;
+    render(false);
+    storeSet('cur_crypto', cryptoCur);
+  },
   'zk-fill': () => { zk.inv = String(round2(allTotals().value)); render(false); }
 };
 
@@ -720,11 +780,12 @@ document.addEventListener('input', e => {
 function updatePriceField() {
   const sel = $('#f-asset');
   if (!sel) return;
-  const live = livePrice(sel.value);
+  const fc = editCur(cur());
+  const live = livePrice(sel.value, fc);
   $('#f-name-wrap').style.display = sel.value === '' ? 'block' : 'none';
   $('#f-p-wrap').style.display = live ? 'none' : 'block';
   $('#f-live').style.display = live ? 'block' : 'none';
-  $('#f-live').textContent = live ? 'Текущая цена: ' + rub(live) + '. Обновляется автоматически.' : '';
+  $('#f-live').textContent = live ? 'Текущая цена: ' + money(live, fc) + '. Обновляется автоматически.' : '';
 }
 
 document.addEventListener('change', e => {
