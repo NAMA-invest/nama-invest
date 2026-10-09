@@ -99,7 +99,6 @@
   .seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--bg2); border-radius: 10px; padding: 3px; }
   .seg button { border: 0; background: none; padding: 9px; border-radius: 8px; color: var(--hint); font: inherit; font-size: 15px; cursor: pointer; }
   .seg button.on { background: var(--bg); color: var(--text); font-weight: 600; }
-  .topbar { display: flex; align-items: center; justify-content: flex-end; margin: 0 0 12px; }
   .icon-btn {
     width: 40px; height: 40px; border-radius: 12px; border: 0; cursor: pointer;
     background: var(--bg2); color: var(--text);
@@ -173,7 +172,7 @@
 // =====================================================================
 
 // Номер версии — виден внизу раздела «Другое». Меняется при каждом обновлении.
-const APP_VERSION = '0.8';
+const APP_VERSION = '0.9';
 
 // Шариатский комитет — экран в разделе «Другое».
 // Пока список пуст, в приложении написано, что состав и заключения скоро появятся.
@@ -533,13 +532,11 @@ function editCur(c) {
   return p ? posCur(p) : dispCur(c.sec);
 }
 
-// Верхняя строка главных экранов: справа кнопка темы.
-function topBar() {
+// Кнопка темы — справа в строке заголовка главных экранов.
+function themeBtn() {
   const dark = currentTheme() === 'dark';
   const label = dark ? 'Включить светлую тему' : 'Включить тёмную тему';
-  return `<div class="topbar">
-    <button class="icon-btn" data-act="theme" aria-label="${label}" title="${label}">${dark ? ICON_SUN : ICON_MOON}</button>
-  </div>`;
+  return `<button class="icon-btn" data-act="theme" aria-label="${label}" title="${label}">${dark ? ICON_SUN : ICON_MOON}</button>`;
 }
 
 const curSwitch = () => `
@@ -563,8 +560,7 @@ const SCREENS = {
       </button>`;
     }).join('');
     return `
-      ${topBar()}
-      <p class="hint">Стоимость портфеля</p>
+      <div class="head-row"><p class="hint" style="margin:0">Стоимость портфеля</p>${themeBtn()}</div>
       <div class="big">${rub(t.value)}</div>
       <div class="num ${tone(t.pl)}">${hasAny ? signedRub(t.pl) + ' ' + (t.cost ? '(' + pctOf(t.pl, t.cost) + ')' : '') : '&nbsp;'}</div>
       <h2>Разделы</h2>
@@ -589,9 +585,11 @@ const SCREENS = {
       </button>`).join('');
     return `
       ${backLink()}
-      ${topBar()}
-      <div class="head-row"><h1>${info.title}</h1>${sec === 'crypto' ? curSwitch() : ''}</div>
-      <div class="num">${money(st.value, cu)} <span class="${tone(st.pl)}">${pf[sec].length ? signedMoney(st.pl, cu) : ''}</span></div>
+      <div class="head-row"><h1>${info.title}</h1>${themeBtn()}</div>
+      <div class="head-row" style="margin-top:4px">
+        <div class="num">${money(st.value, cu)} <span class="${tone(st.pl)}">${pf[sec].length ? signedMoney(st.pl, cu) : ''}</span></div>
+        ${sec === 'crypto' ? curSwitch() : ''}
+      </div>
       ${sec === 'crypto' && usdRub ? `<div class="hint num" style="margin-top:2px">Курс: 1 $ = ${rub(usdRub)}</div>` : ''}
       <h2>Мои позиции</h2>
       <div class="group">${mine}</div>
@@ -662,8 +660,7 @@ const SCREENS = {
       ? `<button class="row" data-act="support"><div class="main"><div class="title">Поддержка</div><div class="sub">Чат с командой</div></div><span class="chev">›</span></button>`
       : `<div class="row static"><div class="main"><div class="title">Поддержка</div></div><span class="hint">Скоро</span></div>`;
     return `
-      ${topBar()}
-      <h1>Другое</h1>
+      <div class="head-row"><h1>Другое</h1>${themeBtn()}</div>
       <h2>Халяль</h2>
       <div class="group">
         <button class="row" data-go="committee"><div class="main"><div class="title">Шариатский комитет</div><div class="sub">Кто и как проверяет активы</div></div><span class="chev">›</span></button>
@@ -964,6 +961,8 @@ function goFullscreen() {
   if (!isPhone() || !atLeast('8.0') || typeof tg.requestFullscreen !== 'function') return;
   try { if (!tg.isFullscreen) tg.requestFullscreen(); } catch (e) {}
 }
+// Запасной вариант: некоторые версии Telegram разрешают полный экран только после касания.
+document.addEventListener('click', () => { if (isPhone() && !tg.isFullscreen) goFullscreen(); }, { capture: true, once: true });
 
 async function init() {
   applyScheme();
