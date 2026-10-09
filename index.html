@@ -55,6 +55,7 @@
   .row .right { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .row .right .sub { margin-top: 1px; }
   .chev { color: var(--hint); font-size: 18px; }
+  .right-stack { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; white-space: nowrap; }
 
   .chip { display: inline-block; font-size: 12px; padding: 2px 7px; border-radius: 6px; border: 1px solid currentColor; white-space: nowrap; }
   .chip.ok { color: var(--up); }
@@ -156,9 +157,10 @@ const SUPPORT_USERNAME = '';
 const CATALOG = {
   sukuk: [
     {
-      id: 'veb-59po', name: 'ВЭБ.РФ ПБО-002Р-59ПО', ticker: '', sector: 'Сукук аль-Мудараба',
+      id: 'veb-59po', name: 'ВЭБ.РФ ПБО-002Р-59ПО', ticker: 'RU000A10FAP5', sector: 'Сукук аль-Мудараба',
+      moex: { board: 'TQCB', secid: 'RU000A10FAP5' },
       status: 'ok', statusNote: 'Структура сукук аль-Мудараба: доход — доля прибыли проекта, а не процент.',
-      about: 'Выпущен ВЭБ.РФ, торгуется на Мосбирже. Перед покупкой уточните у брокера минимальный лот и доступность бумаги для частных инвесторов.'
+      about: 'Выпущен ВЭБ.РФ, торгуется на Мосбирже. Номинал 1 000 ₽, погашение 17 июня 2028 года. Перед покупкой уточните у брокера, доступна ли бумага вам как частному инвестору.'
     }
   ],
   stocks: [
@@ -180,9 +182,9 @@ const CATALOG = {
       statusNote: 'Долг компании заметно вырос. Нужна перепроверка по фильтру долга.' }
   ],
   crypto: [
-    { id: 'BTC', name: 'Bitcoin', ticker: 'BTC', sector: 'Криптовалюта', status: 'pending' },
-    { id: 'ETH', name: 'Ethereum', ticker: 'ETH', sector: 'Криптовалюта', status: 'pending' },
-    { id: 'TON', name: 'Toncoin', ticker: 'TON', sector: 'Криптовалюта', status: 'pending' }
+    { id: 'BTC', name: 'Bitcoin', ticker: 'BTC', cg: 'bitcoin', sector: 'Криптовалюта', status: 'pending' },
+    { id: 'ETH', name: 'Ethereum', ticker: 'ETH', cg: 'ethereum', sector: 'Криптовалюта', status: 'pending' },
+    { id: 'TON', name: 'Toncoin', ticker: 'TON', cg: 'the-open-network', sector: 'Криптовалюта', status: 'pending' }
   ]
 };
 
@@ -201,7 +203,7 @@ const DEFAULT_NOTE = {
 const SECTION_INFO = {
   sukuk: { title: 'Сукук', note: 'Пока на Мосбирже один сукук. Список будет расти.' },
   stocks: { title: 'Акции', note: 'Только обыкновенные акции: привилегированные большинство шариатских стандартов не допускает.' },
-  crypto: { title: 'Криптовалюта', note: 'Цены вводите в рублях за одну монету.' }
+  crypto: { title: 'Криптовалюта', note: 'Цены в рублях за одну монету, источник — CoinGecko.' }
 };
 
 const LESSONS = [
@@ -330,10 +332,95 @@ function alertMsg(text) { if (inTelegram && atLeast('6.2')) tg.showAlert(text); 
 function confirmMsg(text, cb) { if (inTelegram && atLeast('6.2')) tg.showConfirm(text, cb); else cb(confirm(text)); }
 function haptic(type) { try { if (inTelegram && atLeast('6.1')) tg.HapticFeedback.notificationOccurred(type); } catch (e) {} }
 
+// ---------- живые цены ----------
+const prices = {};                         // id актива → цена за 1 шт. в рублях
+const changes = {};                        // id актива → изменение цены за день, %
+const setChange = (id, v) => { if (typeof v === 'number' && isFinite(v)) changes[id] = v; };
+const priceErr = { moex: false, cg: false };
+let pricesAt = null;
+
+async function fetchJSON(url) {
+  const r = await fetch(url, { cache: 'no-store' });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+function issRows(block) {
+  if (!block || !block.columns) return [];
+  return block.data.map(row => { const o = {}; block.columns.forEach((c, i) => { o[c] = row[i]; }); return o; });
+}
+const firstPositive = (...vals) => vals.find(v => typeof v === 'number' && v > 0);
+
+async function loadStockPrices() {
+  const list = CATALOG.stocks.map(a => a.ticker).join(',');
+  const j = await fetchJSON('https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR/securities.json'
+    + '?securities=' + list + '&iss.meta=off&iss.only=securities,marketdata');
+  const prev = {};
+  issRows(j.securities).forEach(r => { prev[r.SECID] = r.PREVPRICE; });
+  issRows(j.marketdata).forEach(r => {
+    const v = firstPositive(r.LAST, r.LCURRENTPRICE, r.MARKETPRICE, prev[r.SECID]);
+    const a = CATALOG.stocks.find(x => x.ticker === r.SECID);
+    if (a && v) prices[a.id] = v;
+    if (a) setChange(a.id, r.LASTTOPREVPRICE);
+  });
+}
+
+async function loadSukukPrices() {
+  for (const a of CATALOG.sukuk) {
+    if (!a.moex) continue;
+    const j = await fetchJSON('https://iss.moex.com/iss/engines/stock/markets/bonds/boards/' + a.moex.board
+      + '/securities/' + a.moex.secid + '.json?iss.meta=off&iss.only=securities,marketdata');
+    const s = issRows(j.securities)[0] || {};
+    const m = issRows(j.marketdata)[0] || {};
+    const pct = firstPositive(m.LAST, m.LCURRENTPRICE, m.MARKETPRICE, s.PREVPRICE);
+    if (pct && s.FACEVALUE > 0) prices[a.id] = pct / 100 * s.FACEVALUE;   // цена в % от номинала → рубли
+    setChange(a.id, m.LASTTOPREVPRICE);
+  }
+}
+
+async function loadCryptoPrices() {
+  const ids = CATALOG.crypto.map(a => a.cg).filter(Boolean).join(',');
+  if (!ids) return;
+  const j = await fetchJSON('https://api.coingecko.com/api/v3/simple/price?ids=' + ids + '&vs_currencies=rub&include_24hr_change=true');
+  CATALOG.crypto.forEach(a => {
+    if (j[a.cg] && j[a.cg].rub > 0) prices[a.id] = j[a.cg].rub;
+    if (j[a.cg]) setChange(a.id, j[a.cg].rub_24h_change);
+  });
+}
+
+async function refreshPrices() {
+  const [st, su, cr] = await Promise.allSettled([loadStockPrices(), loadSukukPrices(), loadCryptoPrices()]);
+  priceErr.moex = st.status === 'rejected' && su.status === 'rejected';
+  priceErr.cg = cr.status === 'rejected';
+  pricesAt = new Date();
+  if (['home', 'sukuk', 'stocks', 'crypto', 'asset'].includes(cur().name)) render(false);
+}
+
+function priceStatus() {
+  if (!pricesAt) return 'Загружаем цены…';
+  if (priceErr.moex && priceErr.cg) return 'Не удалось загрузить цены. Показаны последние сохранённые.';
+  const t = pricesAt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  let s = 'Цены обновлены в ' + t + ', обновляются каждые 30 секунд. Мосбиржа бесплатно отдаёт их с задержкой 15 минут. Процент — изменение за день.';
+  if (priceErr.moex) s += ' Цены Мосбиржи сейчас недоступны.';
+  if (priceErr.cg) s += ' Цены криптовалют сейчас недоступны.';
+  return s;
+}
+
+const livePrice = id => (id && prices[id] > 0) ? prices[id] : null;
+function changeHtml(id) {
+  const v = changes[id];
+  if (typeof v !== 'number') return '';
+  return ` <span class="${tone(v)}">${sign(v)}${nf.format(Math.abs(round2(v)))}%</span>`;
+}
+function priceLine(id) {
+  const v = livePrice(id);
+  return v ? `<span class="num">${rub(v)}${changeHtml(id)}</span>` : '';
+}
+const priceOf = p => livePrice(p.a) || p.p;
+
 // ---------- расчёты ----------
 function secTotals(sec) {
   let value = 0, cost = 0;
-  for (const p of pf[sec]) { value += p.q * p.p; cost += p.q * p.b; }
+  for (const p of pf[sec]) { value += p.q * priceOf(p); cost += p.q * p.b; }
   return { value, cost, pl: value - cost };
 }
 function allTotals() {
@@ -355,9 +442,9 @@ const disclaimer = '<p class="note">Информация носит образо
 const chip = st => `<span class="chip ${st}">${STATUS[st]}</span>`;
 
 function positionRow(sec, p) {
-  const value = p.q * p.p, pl = value - p.q * p.b;
+  const value = p.q * priceOf(p), pl = value - p.q * p.b;
   return `<button class="row" data-go="edit" data-sec="${sec}" data-pid="${esc(p.i)}">
-    <div class="main"><div class="title">${esc(p.n)}</div><div class="sub num">${nf.format(p.q)} шт.</div></div>
+    <div class="main"><div class="title">${esc(p.n)}</div><div class="sub num">${nf.format(p.q)} шт. по ${rub(priceOf(p))}${p.a ? changeHtml(p.a) : ''}</div></div>
     <div class="right"><div>${rub(value)}</div><div class="sub ${tone(pl)}">${signedRub(pl)}</div></div>
   </button>`;
 }
@@ -383,7 +470,7 @@ const SCREENS = {
       <h2>Разделы</h2>
       <div class="group">${rows}</div>
       ${hasAny ? '' : '<p class="hint" style="margin-top:12px">Откройте раздел и добавьте свой первый актив.</p>'}
-      <p class="note">Текущие цены пока вводятся вручную. Скоро они будут обновляться автоматически.</p>
+      <p class="note">${priceStatus()}</p>
       ${disclaimer}`;
   },
 
@@ -396,8 +483,8 @@ const SCREENS = {
       : '<div class="empty">Здесь появятся ваши активы.</div>';
     const catalog = CATALOG[sec].map(a => `
       <button class="row" data-go="asset" data-sec="${sec}" data-id="${a.id}">
-        <div class="main"><div class="title">${esc(a.name)}</div><div class="sub">${esc(a.ticker ? a.ticker + ', ' + a.sector : a.sector)}</div></div>
-        ${chip(a.status)}
+        <div class="main"><div class="title">${esc(a.name)}</div><div class="sub">${esc(sec === 'sukuk' ? a.sector : (a.ticker ? a.ticker + ', ' + a.sector : a.sector))}</div></div>
+        <div class="right-stack">${priceLine(a.id)}${chip(a.status)}</div>
       </button>`).join('');
     return `
       ${backLink()}
@@ -409,6 +496,7 @@ const SCREENS = {
       <h2>Халяльные активы</h2>
       <div class="group">${catalog}</div>
       <p class="note">${info.note} Статусы подтверждает шариатский комитет NAMA.</p>
+      <p class="note">${priceStatus()}</p>
       ${disclaimer}`;
   },
 
@@ -421,7 +509,8 @@ const SCREENS = {
       <h1>${esc(a.name)}</h1>
       <p style="margin:8px 0 18px">${chip(a.status)}</p>
       <div class="group">
-        ${a.ticker ? `<div class="detail-row"><span>Тикер</span><span>${esc(a.ticker)}</span></div>` : ''}
+        <div class="detail-row"><span>Цена</span><span class="num">${livePrice(a.id) ? priceLine(a.id) : 'Нет данных'}</span></div>
+        ${a.ticker ? `<div class="detail-row"><span>${c.sec === 'sukuk' ? 'Код (ISIN)' : 'Тикер'}</span><span>${esc(a.ticker)}</span></div>` : ''}
         <div class="detail-row"><span>${c.sec === 'sukuk' ? 'Тип' : 'Отрасль'}</span><span>${esc(a.sector)}</span></div>
         <div class="detail-row"><span>Раздел</span><span>${SECTION_INFO[c.sec].title}</span></div>
       </div>
@@ -453,9 +542,13 @@ const SCREENS = {
       <input id="f-q" type="text" inputmode="decimal" value="${p ? p.q : ''}" placeholder="0">
       <label for="f-b">Цена покупки за ${unit}, ₽</label>
       <input id="f-b" type="text" inputmode="decimal" value="${p ? p.b : ''}" placeholder="0">
-      <label for="f-p">Текущая цена за ${unit}, ₽</label>
-      <input id="f-p" type="text" inputmode="decimal" value="${p ? p.p : ''}" placeholder="Если пусто — равна цене покупки">
-      <div class="field-hint">Пока вводится вручную. Скоро будет обновляться автоматически.</div>
+      ${sec === 'sukuk' ? '<div class="field-hint">Брокер показывает цену в процентах от номинала 1 000 ₽. Например, 100,67% — это 1 006,70 ₽.</div>' : ''}
+      <div id="f-live" class="field-hint" style="font-size:14px;margin-top:16px"></div>
+      <div id="f-p-wrap">
+        <label for="f-p">Текущая цена за ${unit}, ₽</label>
+        <input id="f-p" type="text" inputmode="decimal" value="${p ? p.p : ''}" placeholder="Если пусто — равна цене покупки">
+        <div class="field-hint">Для этого актива цена вводится вручную.</div>
+      </div>
       <button class="btn" data-act="save">Сохранить</button>
       ${p ? '<button class="btn danger" data-act="delete">Удалить позицию</button>' : ''}`;
   },
@@ -567,6 +660,8 @@ async function savePosition() {
   if (!(q > 0)) return alertMsg('Укажите количество больше нуля.');
   if (isNaN(b) || b < 0) return alertMsg('Укажите цену покупки.');
   if (isNaN(price) || price < 0) price = b;
+  const live = asset ? livePrice(asset.id) : null;
+  if (live) price = live;
 
   const data = { a: asset ? asset.id : '', n: name, q, b, p: price };
   const before = JSON.stringify(pf[sec]);
@@ -622,8 +717,18 @@ document.addEventListener('input', e => {
   if (key) { zk[key] = e.target.value; const r = $('#zk-result'); if (r) r.innerHTML = zakatResult(); }
 });
 
+function updatePriceField() {
+  const sel = $('#f-asset');
+  if (!sel) return;
+  const live = livePrice(sel.value);
+  $('#f-name-wrap').style.display = sel.value === '' ? 'block' : 'none';
+  $('#f-p-wrap').style.display = live ? 'none' : 'block';
+  $('#f-live').style.display = live ? 'block' : 'none';
+  $('#f-live').textContent = live ? 'Текущая цена: ' + rub(live) + '. Обновляется автоматически.' : '';
+}
+
 document.addEventListener('change', e => {
-  if (e.target.id === 'f-asset') $('#f-name-wrap').style.display = e.target.value === '' ? 'block' : 'none';
+  if (e.target.id === 'f-asset') updatePriceField();
 });
 
 // ---------- отрисовка ----------
@@ -633,6 +738,7 @@ function render(resetScroll = true) {
   app.innerHTML = screen(c);
   const root = stack[0].name;
   document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === root));
+  if (c.name === 'edit') updatePriceField();
   if (inTelegram && atLeast('6.1')) { stack.length > 1 ? tg.BackButton.show() : tg.BackButton.hide(); }
   if (resetScroll) window.scrollTo(0, 0);
 }
@@ -656,6 +762,8 @@ async function init() {
   }
   await loadAll();
   render();
+  refreshPrices();
+  setInterval(() => { if (!document.hidden) refreshPrices(); }, 30000);
 }
 init();
 </script>
