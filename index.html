@@ -259,7 +259,7 @@
 // =====================================================================
 
 // Номер версии — виден внизу раздела «Другое». Меняется при каждом обновлении.
-const APP_VERSION = '0.13';
+const APP_VERSION = '0.14';
 
 // Шариатский комитет — экран в разделе «Другое».
 // Пока список пуст, в приложении написано, что состав и заключения скоро появятся.
@@ -1343,8 +1343,20 @@ function drawSpark(el, s) {
   el.innerHTML = `<svg class="${ch > 0 ? 'up' : ch < 0 ? 'down' : ''}" viewBox="0 0 ${W} ${H}"><path class="c-line" d="${pathOf(pts)}"/></svg>`;
 }
 
-let resizeTimer = 0;
-window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if (!scrubbing) render(false); }, 200); });
+// Перерисовываем только графики и только при смене ширины экрана.
+// Высота меняется, когда открывается клавиатура — в этот момент экран трогать нельзя,
+// иначе поле ввода теряет фокус и клавиатура сразу закрывается.
+let resizeTimer = 0, lastWidth = window.innerWidth;
+window.addEventListener('resize', () => {
+  if (window.innerWidth === lastWidth) return;
+  lastWidth = window.innerWidth;
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    const el = document.activeElement;
+    if (scrubbing || (el && /^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName))) return;
+    mountCharts();
+  }, 200);
+});
 
 // ---------- тема ----------
 // themePref: 'light' или 'dark', если пользователь выбрал вручную; null — как в Telegram.
