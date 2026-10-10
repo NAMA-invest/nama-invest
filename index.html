@@ -72,6 +72,7 @@
   .chip.ok { color: var(--up); }
   .chip.review { color: var(--warn); }
   .chip.pending { color: var(--hint); }
+  .chip.disputed { color: var(--warn); border-style: dashed; }
 
   .empty { padding: 18px 16px; color: var(--hint); font-size: 14px; }
   .note { font-size: 12px; color: var(--hint); line-height: 1.5; margin: 18px 2px 0; }
@@ -258,7 +259,7 @@
 // =====================================================================
 
 // Номер версии — виден внизу раздела «Другое». Меняется при каждом обновлении.
-const APP_VERSION = '0.12';
+const APP_VERSION = '0.13';
 
 // Шариатский комитет — экран в разделе «Другое».
 // Пока список пуст, в приложении написано, что состав и заключения скоро появятся.
@@ -305,22 +306,32 @@ const CATALOG = {
       statusNote: 'Долг компании заметно вырос. Нужна перепроверка по фильтру долга.' }
   ],
   crypto: [
-    { id: 'BTC', name: 'Bitcoin', ticker: 'BTC', cg: 'bitcoin', sector: 'Криптовалюта', status: 'pending' },
-    { id: 'ETH', name: 'Ethereum', ticker: 'ETH', cg: 'ethereum', sector: 'Криптовалюта', status: 'pending' },
-    { id: 'TON', name: 'Toncoin', ticker: 'TON', cg: 'the-open-network', sector: 'Криптовалюта', status: 'pending' }
+    // cg — идентификатор монеты на CoinGecko, по нему подтягиваются цена и график.
+    { id: 'BTC',  name: 'Bitcoin',   ticker: 'BTC',  cg: 'bitcoin',                 sector: 'Сеть платежей',                 status: 'disputed' },
+    { id: 'ETH',  name: 'Ethereum',  ticker: 'ETH',  cg: 'ethereum',                sector: 'Платформа смарт-контрактов',    status: 'disputed' },
+    { id: 'TON',  name: 'Toncoin',   ticker: 'TON',  cg: 'the-open-network',        sector: 'Блокчейн экосистемы Telegram',  status: 'disputed' },
+    { id: 'SOL',  name: 'Solana',    ticker: 'SOL',  cg: 'solana',                  sector: 'Платформа смарт-контрактов',    status: 'disputed' },
+    { id: 'XRP',  name: 'XRP',       ticker: 'XRP',  cg: 'ripple',                  sector: 'Сеть международных переводов',  status: 'disputed' },
+    { id: 'ADA',  name: 'Cardano',   ticker: 'ADA',  cg: 'cardano',                 sector: 'Платформа смарт-контрактов',    status: 'disputed' },
+    { id: 'LINK', name: 'Chainlink', ticker: 'LINK', cg: 'chainlink',               sector: 'Передача внешних данных в блокчейн', status: 'disputed' },
+    { id: 'AVAX', name: 'Avalanche', ticker: 'AVAX', cg: 'avalanche-2',             sector: 'Платформа смарт-контрактов',    status: 'disputed' },
+    { id: 'DOT',  name: 'Polkadot',  ticker: 'DOT',  cg: 'polkadot',                sector: 'Сеть для связи блокчейнов',     status: 'disputed' },
+    { id: 'LTC',  name: 'Litecoin',  ticker: 'LTC',  cg: 'litecoin',                sector: 'Сеть платежей',                 status: 'disputed' },
+    { id: 'POL',  name: 'Polygon',   ticker: 'POL',  cg: 'polygon-ecosystem-token', sector: 'Сеть поверх Ethereum',          status: 'disputed' }
   ]
 };
 
 const STATUS = {
   ok: 'Разрешено',
   review: 'На перепроверке',
+  disputed: 'Мнения расходятся',
   pending: 'Ждёт заключения'
 };
 
 const DEFAULT_NOTE = {
   sukuk: '',
   stocks: 'Входит в шариатский индекс Мосбиржи MXSHAR.',
-  crypto: 'Мнения учёных о криптовалюте расходятся. Ждём заключения нашего комитета.'
+  crypto: 'Монета проходит проверку сторонних шариатских скринеров (Sharlife, HalalScreener): у неё есть реальная функция, она не связана с запрещённым и не приносит процент. Против — Совет улемов ДУМ РФ (заключение № 4/23): покупать криптовалюту для накопления недопустимо из-за высокой волатильности. Окончательное решение — за шариатским комитетом NAMA. Если покупаете: только спот, без маржи, фьючерсов и «earn»-продуктов.'
 };
 
 const SECTION_INFO = {
@@ -720,7 +731,7 @@ const SCREENS = {
       ${hasHistory(c.sec, a) ? `<div class="chart" data-chart="asset" data-sec="${c.sec}" data-id="${a.id}" data-h="120"></div>${periodSeg()}` : ''}
       <div class="group" style="margin-top:18px">
         ${a.ticker ? `<div class="detail-row"><span>${c.sec === 'sukuk' ? 'Код (ISIN)' : 'Тикер'}</span><span>${esc(a.ticker)}</span></div>` : ''}
-        <div class="detail-row"><span>${c.sec === 'sukuk' ? 'Тип' : 'Отрасль'}</span><span>${esc(a.sector)}</span></div>
+        <div class="detail-row"><span>${c.sec === 'sukuk' ? 'Тип' : c.sec === 'crypto' ? 'Назначение' : 'Отрасль'}</span><span>${esc(a.sector)}</span></div>
         <div class="detail-row"><span>Раздел</span><span>${SECTION_INFO[c.sec].title}</span></div>
       </div>
       ${note ? `<h2>Статус</h2><p>${esc(note)}</p>` : ''}
@@ -818,6 +829,7 @@ const SCREENS = {
       <div class="group">
         <div class="row static"><div class="main"><div class="sub">Актив прошёл проверку и соответствует шариатским критериям.</div></div>${chip('ok')}</div>
         <div class="row static"><div class="main"><div class="sub">Был разрешён, но новые данные нужно проверить. До решения комитета статус под вопросом.</div></div>${chip('review')}</div>
+        <div class="row static"><div class="main"><div class="sub">Авторитетные учёные расходятся во мнениях. В карточке актива — обе позиции.</div></div>${chip('disputed')}</div>
         <div class="row static"><div class="main"><div class="sub">Комитет ещё не вынес решение.</div></div>${chip('pending')}</div>
       </div>
       <h2>Заключения</h2>
