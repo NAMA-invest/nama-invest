@@ -96,6 +96,11 @@
   }
   input:focus, select:focus { border-color: var(--hint); }
   .field-hint { font-size: 12px; color: var(--hint); margin-top: 6px; }
+  input[type="date"] { min-height: 48px; text-align: left; }
+  .pct-input { width: 84px; text-align: right; padding: 9px 12px; }
+  .pct-wrap { display: flex; align-items: center; gap: 6px; color: var(--hint); }
+  .sum-big { font-size: 22px; font-weight: 650; }
+  .done { color: var(--up); }
 
   .seg { display: grid; grid-template-columns: repeat(var(--n, 2), 1fr); background: var(--bg2); border-radius: 10px; padding: 3px; }
   .seg button { border: 0; background: none; padding: 9px; border-radius: 8px; color: var(--hint); font: inherit; font-size: 15px; cursor: pointer; }
@@ -259,7 +264,7 @@
 // =====================================================================
 
 // Номер версии — виден внизу раздела «Другое». Меняется при каждом обновлении.
-const APP_VERSION = '0.14';
+const APP_VERSION = '0.15';
 
 // Шариатский комитет — экран в разделе «Другое».
 // Пока список пуст, в приложении написано, что состав и заключения скоро появятся.
@@ -287,6 +292,8 @@ const CATALOG = {
       about: 'Выпущен ВЭБ.РФ, торгуется на Мосбирже. Номинал 1 000 ₽, погашение 17 июня 2028 года. Перед покупкой уточните у брокера, доступна ли бумага вам как частному инвестору.'
     }
   ],
+  // purify — доля запрещённого дохода компании в % (для очищения дивидендов).
+  // Заполняет комитет, например purify: 1.2. Пока не указано — пользователь вводит процент сам.
   stocks: [
     { id: 'YDEX', name: 'Яндекс', ticker: 'YDEX', sector: 'IT: поиск, такси, доставка, облако', status: 'ok' },
     { id: 'LKOH', name: 'Лукойл', ticker: 'LKOH', sector: 'Добыча и переработка нефти', status: 'ok' },
@@ -461,6 +468,8 @@ async function loadAll() {
   }
   const c = await storeGet('cur_crypto');
   if (c === 'rub' || c === 'usd') cryptoCur = c;
+  try { const v = JSON.parse(await storeGet('purify_pct')); if (v && typeof v === 'object') purifyPct = v; } catch (e) {}
+  try { const v = JSON.parse(await storeGet('purified')); if (v && typeof v === 'object') purified = v; } catch (e) {}
   const t = await storeGet('theme');
   if (t === 'light' || t === 'dark') {
     themePref = t;
@@ -682,6 +691,10 @@ const SCREENS = {
       ${hasAny ? `<div class="chart" data-chart="portfolio" data-h="110"></div>${periodSeg()}` : ''}
       <h2>Разделы</h2>
       <div class="group">${rows}</div>
+      ${hasIncomeAssets() ? `<h2>Доходы</h2>
+      <div class="group">
+        <button class="row" data-go="income"><div class="main"><div class="title">Дивиденды и очищение</div><div class="sub">${incomeTeaser()}</div></div><span class="chev">›</span></button>
+      </div>` : ''}
       ${hasAny ? '' : '<p class="hint" style="margin-top:12px">Откройте раздел и добавьте свой первый актив.</p>'}
       <p class="note">${priceStatus()}</p>
       ${disclaimer}`;
@@ -761,6 +774,9 @@ const SCREENS = {
       </div>
       <label for="f-q">Количество</label>
       <input id="f-q" type="text" inputmode="decimal" value="${p ? p.q : ''}" placeholder="0">
+      <label for="f-d">Дата покупки</label>
+      <input id="f-d" type="date" value="${p && p.d ? p.d : ''}" max="${isoDay(new Date())}">
+      <div class="field-hint">Нужна, чтобы верно посчитать дивиденды. Если не указать, считаем, что бумага у вас давно.</div>
       <label for="f-b">Цена покупки за ${unit}, ${sym}</label>
       <input id="f-b" type="text" inputmode="decimal" value="${p ? p.b : ''}" placeholder="0">
       ${sec === 'sukuk' ? '<div class="field-hint">Брокер показывает цену в процентах от номинала 1 000 ₽. Например, 100,67% — это 1 006,70 ₽.</div>' : ''}
@@ -791,6 +807,7 @@ const SCREENS = {
       </div>
       <h2>Инструменты</h2>
       <div class="group">
+        <button class="row" data-go="income"><div class="main"><div class="title">Дивиденды и очищение</div><div class="sub">Выплаты по вашим бумагам и сумма на садака</div></div><span class="chev">›</span></button>
         <button class="row" data-go="zakat"><div class="main"><div class="title">Калькулятор закята</div><div class="sub">По нисабу золота или серебра</div></div><span class="chev">›</span></button>
         <div class="row static"><div class="main"><div class="title">Привязка брокерского счёта</div></div><span class="hint">Скоро</span></div>
         <div class="row static"><div class="main"><div class="title">Обменник</div></div><span class="hint">Скоро</span></div>
@@ -798,6 +815,49 @@ const SCREENS = {
       <h2>Связь</h2>
       <div class="group">${support}</div>
       <p class="note" style="text-align:center;margin-top:28px">NAMA Invest, версия ${APP_VERSION}</p>`;
+  },
+
+  income() {
+    const { ev, loading, failed, total } = incomeEvents();
+    const upcoming = ev.filter(e => e.future), past = ev.filter(e => !e.future).reverse();
+    const sum = (arr, f) => arr.reduce((s, e) => s + (f(e) || 0), 0);
+    const expected = sum(upcoming, e => e.amount);
+    const received = sum(past, e => e.amount);
+    const due = sum(past, e => (e.purify && !purified[e.key] ? e.purify : 0));
+    const done = sum(past, e => (e.purify && purified[e.key] ? e.purify : 0));
+    const stocks = incomeAssets().filter(x => x.kind === 'div');
+    const skel = '<div class="row static"><div class="main"><span class="skel" style="width:60%"></span></div></div>';
+    const list = (arr, empty) => loading && !arr.length ? skel + skel : (arr.length ? arr.map(incomeRow).join('') : `<div class="empty">${empty}</div>`);
+    return `
+      ${backLink()}
+      <h1>Дивиденды и очищение</h1>
+      <div class="group" style="margin-top:16px">
+        <div class="detail-row"><span>Ожидается</span><span class="num">${rub(expected)}</span></div>
+        <div class="detail-row"><span>Получено за 12 месяцев</span><span class="num">${rub(received)}</span></div>
+        <div class="detail-row"><span>К очищению</span><span class="num sum-big">${rub(due)}</span></div>
+        ${done > 0 ? `<div class="detail-row"><span>Уже очищено</span><span class="num done">${rub(done)}</span></div>` : ''}
+      </div>
+      ${failed ? `<p class="note">Не удалось загрузить данные Мосбиржи по ${failed} из ${total} бумаг. Попробуем снова через пару минут.</p>` : ''}
+
+      <h2>Ближайшие выплаты</h2>
+      <div class="group">${list(upcoming, 'Объявленных выплат по вашим бумагам пока нет.')}</div>
+
+      <h2>За последние 12 месяцев</h2>
+      <div class="group">${list(past, 'Выплат за год не было.')}</div>
+      ${past.some(e => e.purify) ? '<p class="note" style="margin-top:6px">Отдали на садака? Нажмите на выплату, чтобы отметить её очищенной.</p>' : ''}
+
+      ${stocks.length ? `<h2>Процент очищения</h2>
+      <div class="group">
+        ${stocks.map(({ a }) => `<div class="row static">
+          <div class="main"><div class="title">${esc(a.name)}</div><div class="sub">${a.purify != null && purifyPct[a.id] == null ? 'указан комитетом' : purifyPct[a.id] != null ? 'указан вами' : 'доля запрещённого дохода компании'}</div></div>
+          <label class="pct-wrap" style="margin:0"><input class="pct-input" data-purify="${a.id}" type="text" inputmode="decimal" value="${purifyOf(a) != null ? nf.format(purifyOf(a)) : ''}" placeholder="—" aria-label="Процент очищения, ${esc(a.name)}">%</label>
+        </div>`).join('')}
+      </div>
+      <p class="note" style="margin-top:6px">Процент — доля запрещённого дохода компании в её выручке, обычно процентов по депозитам. Его берут из отчётности МСФО. Допускается до 5%: выше — бумага не проходит проверку.</p>` : ''}
+
+      <button class="btn ghost" data-go="lesson" data-id="purify">Как работает очищение</button>
+      <p class="note">Суммы указаны до налога 13%: брокер удержит его сам. Очищение считаем от суммы до налога — так осторожнее. По акциям дата — это отсечка: чтобы получить дивиденд, бумага должна быть у вас хотя бы за один торговый день до неё. Выплата приходит позже, обычно в течение месяца.</p>
+      ${disclaimer}`;
   },
 
   committee() {
@@ -929,7 +989,8 @@ async function savePosition() {
   const live = asset ? livePrice(asset.id, fc) : null;
   if (live) price = live;
 
-  const data = { a: asset ? asset.id : '', n: name, q, b, p: price, c: fc };
+  const dEl = $('#f-d');
+  const data = { a: asset ? asset.id : '', n: name, q, b, p: price, c: fc, d: dEl && /^\d{4}-\d{2}-\d{2}$/.test(dEl.value) ? dEl.value : '' };
   const before = JSON.stringify(pf[sec]);
   if (c.pid) {
     const p = pf[sec].find(x => x.i === c.pid);
@@ -968,6 +1029,13 @@ const ACTIONS = {
     slideSeg(el, el.dataset.v === 'silver' ? 1 : 0, () => { zk.basis = el.dataset.v; render(false); });
   },
   theme: toggleTheme,
+  'toggle-purified': el => {
+    const k = el.dataset.k;
+    if (purified[k]) delete purified[k]; else purified[k] = true;
+    hapticSelect();
+    render(false);
+    storeSet('purified', JSON.stringify(purified));
+  },
   period: el => {
     if (chartPeriod === el.dataset.v) return;
     const idx = PERIODS.findIndex(p => p.id === el.dataset.v);
@@ -1024,6 +1092,15 @@ function updatePriceField() {
 
 document.addEventListener('change', e => {
   if (e.target.id === 'f-asset') updatePriceField();
+  const id = e.target.dataset && e.target.dataset.purify;
+  if (id) {
+    const v = num(e.target.value);
+    if (e.target.value.trim() === '') delete purifyPct[id];
+    else if (isNaN(v) || v < 0 || v > 100) { alertMsg('Введите процент от 0 до 100.'); return; }
+    else purifyPct[id] = v;
+    storeSet('purify_pct', JSON.stringify(purifyPct));
+    render(false);
+  }
 });
 
 // ---------- отрисовка ----------
@@ -1043,6 +1120,7 @@ function render(resetScroll = true, anim = null) {
   if (c.name === 'home') countTotal();
   if (anim) chartAnimate = true;
   mountCharts();
+  mountIncome();
   justAdded = null;
   if (inTelegram && atLeast('6.1')) { stack.length > 1 ? tg.BackButton.show() : tg.BackButton.hide(); }
   if (resetScroll) window.scrollTo(0, 0);
@@ -1087,6 +1165,138 @@ function slideSeg(btn, index, done) {
   if (reduceMotion()) done(); else setTimeout(done, 280);
 }
 
+
+
+// ---------- дивиденды и очищение ----------
+let purifyPct = {};       // свои проценты пользователя: id акции → %
+let purified = {};        // отмеченные как очищенные выплаты: 'LKOH|2026-07-01' → true
+const incomeCache = {};   // 'div|LKOH' / 'cpn|veb-59po' → { at, rows, err }
+const incomePending = {};
+const INCOME_TTL = 6 * 3600 * 1000;
+
+const isoDay = d => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+const lowerKeys = o => { const r = {}; for (const k in o) r[k.toLowerCase()] = o[k]; return r; };
+const fmtDay = iso => new Date(iso + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' }).replace(/\s?г\.$/, '');
+const RUB_CODES = ['RUB', 'SUR', 'RUR'];
+
+async function fetchIncome(kind, a) {
+  if (kind === 'div') {
+    const j = await fetchJSON('https://iss.moex.com/iss/securities/' + a.ticker + '/dividends.json?iss.meta=off');
+    return issRows(j.dividends).map(lowerKeys)
+      .filter(r => r.registryclosedate && r.value > 0 && RUB_CODES.includes(String(r.currencyid || 'RUB').toUpperCase()))
+      .map(r => ({ date: String(r.registryclosedate).slice(0, 10), rec: String(r.registryclosedate).slice(0, 10), value: r.value }));
+  }
+  const j = await fetchJSON('https://iss.moex.com/iss/securities/' + a.moex.secid + '/bondization.json?iss.meta=off&iss.only=coupons');
+  return issRows(j.coupons).map(lowerKeys).filter(r => r.coupondate).map(r => {
+    const v = r.value_rub > 0 ? r.value_rub : r.value > 0 ? r.value : null;
+    const date = String(r.coupondate).slice(0, 10);
+    return { date, rec: r.recorddate ? String(r.recorddate).slice(0, 10) : date, value: v };
+  });
+}
+
+function ensureIncome(kind, a) {
+  const key = kind + '|' + a.id;
+  const c = incomeCache[key];
+  if (c && Date.now() - c.at < (c.err ? 120000 : INCOME_TTL)) return Promise.resolve(c);
+  if (!incomePending[key]) {
+    incomePending[key] = fetchIncome(kind, a)
+      .then(rows => (incomeCache[key] = { at: Date.now(), rows }))
+      .catch(e => (incomeCache[key] = { at: Date.now(), rows: [], err: String(e && e.message || e) }))
+      .finally(() => { delete incomePending[key]; });
+  }
+  return incomePending[key];
+}
+
+// Бумаги в портфеле, по которым бывают выплаты
+function incomeAssets() {
+  const out = [], seen = {};
+  for (const sec of ['stocks', 'sukuk']) {
+    for (const p of pf[sec]) {
+      const a = p.a && findAsset(sec, p.a);
+      if (!a || !hasHistory(sec, a) || seen[a.id]) continue;
+      seen[a.id] = 1;
+      out.push({ sec, a, kind: sec === 'stocks' ? 'div' : 'cpn' });
+    }
+  }
+  return out;
+}
+const hasIncomeAssets = () => incomeAssets().length > 0;
+
+// Сколько бумаг было на дату отсечки. Без даты покупки считаем, что бумага была.
+function qtyOn(sec, id, recDate) {
+  return pf[sec].filter(p => p.a === id && (!p.d || p.d < recDate)).reduce((s, p) => s + p.q, 0);
+}
+const purifyOf = a => (purifyPct[a.id] != null ? purifyPct[a.id] : (a.purify != null ? a.purify : null));
+
+function incomeEvents() {
+  const today = isoDay(new Date());
+  const yearAgo = isoDay(new Date(Date.now() - 365 * 86400000));
+  const ev = [];
+  let loading = false, failed = 0;
+  const assets = incomeAssets();
+  for (const { sec, a, kind } of assets) {
+    const c = incomeCache[kind + '|' + a.id];
+    if (!c) { loading = true; continue; }
+    if (c.err) { failed++; continue; }
+    for (const r of c.rows) {
+      if (r.date < yearAgo) continue;
+      const future = r.date >= today;
+      const q = qtyOn(sec, a.id, r.rec);
+      if (q <= 0) continue;
+      const amount = r.value ? q * r.value : null;
+      const pct = kind === 'div' ? purifyOf(a) : null;
+      ev.push({
+        sec, a, kind, future, q, date: r.date, per: r.value, amount, pct,
+        purify: amount != null && pct != null ? amount * pct / 100 : null,
+        key: a.id + '|' + r.date
+      });
+    }
+  }
+  ev.sort((x, y) => (x.date < y.date ? -1 : 1));
+  return { ev, loading, failed, total: assets.length };
+}
+
+function incomeTeaser() {
+  const { ev, loading } = incomeEvents();
+  if (loading && !ev.length) return 'Загружаем выплаты…';
+  const next = ev.find(e => e.future);
+  const due = ev.filter(e => !e.future && e.purify && !purified[e.key]).reduce((s, e) => s + e.purify, 0);
+  const parts = [];
+  if (next) parts.push(next.a.name + ', ' + fmtDay(next.date) + (next.amount ? ': ≈ ' + rub(next.amount) : ''));
+  if (due > 0) parts.push('к очищению ' + rub(due));
+  return parts.length ? parts.join('; ') : 'Объявленных выплат нет';
+}
+
+function mountIncome() {
+  const name = cur().name;
+  if (name !== 'income' && name !== 'home') return;
+  const need = incomeAssets().filter(({ a, kind }) => {
+    const c = incomeCache[kind + '|' + a.id];
+    return !c || Date.now() - c.at >= (c.err ? 120000 : INCOME_TTL);
+  });
+  if (!need.length) return;
+  Promise.all(need.map(n => ensureIncome(n.kind, n.a))).then(() => {
+    const el = document.activeElement;
+    if (scrubbing || (el && /^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName))) return;
+    if (cur().name === name) render(false);
+  });
+}
+
+function incomeRow(e) {
+  const isDiv = e.kind === 'div';
+  const what = (isDiv ? 'Отсечка ' : 'Выплата ') + fmtDay(e.date) + (e.per ? ', ' + rub(e.per) + (isDiv ? ' на акцию' : ' на бумагу') : '') + ', ' + nf.format(e.q) + ' шт.';
+  let right2;
+  if (!isDiv) right2 = '<div class="sub">сукук, очищать не нужно</div>';
+  else if (e.purify == null) right2 = '<div class="sub">укажите % очищения</div>';
+  else if (!e.future && purified[e.key]) right2 = '<div class="sub done">очищено ' + rub(e.purify) + '</div>';
+  else right2 = '<div class="sub">' + (e.future ? 'очищение ≈ ' : 'к очищению ') + rub(e.purify) + '</div>';
+  const inner = `<div class="main"><div class="title">${esc(e.a.name)}</div><div class="sub num">${what}</div></div>
+    <div class="right"><div>${e.amount != null ? (e.future ? '≈ ' : '') + rub(e.amount) : 'сумма не объявлена'}</div>${right2}</div>`;
+  const toggle = isDiv && !e.future && e.purify;
+  return toggle
+    ? `<button class="row" data-act="toggle-purified" data-k="${esc(e.key)}" aria-pressed="${!!purified[e.key]}">${inner}</button>`
+    : `<div class="row static">${inner}</div>`;
+}
 
 // ---------- графики ----------
 const PERIODS = [
