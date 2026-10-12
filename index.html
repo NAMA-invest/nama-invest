@@ -5,33 +5,45 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>NAMA Invest</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: var(--tg-theme-bg-color, #ffffff);
-    --bg2: var(--tg-theme-secondary-bg-color, #f2f2f0);
-    --text: var(--tg-theme-text-color, #1c1c1c);
-    --hint: var(--tg-theme-hint-color, #8a8a8a);
-    --line: rgba(128, 128, 128, 0.2);
-    --up: #2e7d4f;
-    --down: #b8433b;
-    --warn: #9a6a12;
-  }
-  html[data-scheme="dark"] {
-    --up: #63c08b;
-    --down: #ec6f66;
-    --warn: #d9a64a;
-  }
-  /* Тема, выбранная вручную кнопкой, перекрывает цвета Telegram */
-  html[data-theme="light"] {
-    --bg: #ffffff; --bg2: #f2f2f0; --text: #1c1c1c; --hint: #8a8a8a;
+  /* ===== Фирменные цвета NAMA: изумруд и золото ===== */
+  :root, html[data-theme="light"] {
+    --bg: #F3F4F1;          /* фон страницы */
+    --card: #FFFFFF;        /* карточки */
+    --bg2: #ECEEEA;         /* поля, переключатели */
+    --text: #141614;
+    --hint: #747974;
+    --line: rgba(0, 0, 0, .07);
+    --brand: #0D4A3A;       /* изумруд */
+    --brand-2: #0B3F31;
+    --gold: #B8913A;        /* золото — только для акцентов */
+    --up: #127A61;
+    --down: #B8443C;
+    --warn: #93670F;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .05);
   }
   html[data-theme="dark"] {
-    --bg: #17181a; --bg2: #232427; --text: #ececec; --hint: #8e9095;
+    --bg: #111312;
+    --card: #1C1F1E;
+    --bg2: #262A28;
+    --text: #ECEDEB;
+    --hint: #8F9490;
+    --line: rgba(255, 255, 255, .07);
+    --brand: #0F4F3E;
+    --brand-2: #0C4334;
+    --gold: #D4B262;
+    --up: #3FB894;
+    --down: #E0675F;
+    --warn: #D9A64A;
+    --shadow: none;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
     margin: 0;
-    font-family: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+    font-family: "Onest", -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
     font-size: 16px;
     line-height: 1.4;
     background: var(--bg);
@@ -42,16 +54,16 @@
     padding: calc(16px + var(--top-inset, 0px)) 16px calc(84px + max(env(safe-area-inset-bottom), var(--bottom-inset, 0px)));
     max-width: 560px; margin: 0 auto;
   }
-  h1 { font-size: 26px; font-weight: 700; margin: 4px 0 4px; letter-spacing: -0.3px; }
-  h2 { font-size: 15px; font-weight: 600; margin: 26px 0 8px; }
+  h1 { font-size: 28px; font-weight: 700; margin: 4px 0 4px; letter-spacing: -0.5px; line-height: 1.15; }
+  h2 { font-size: 15px; font-weight: 600; margin: 24px 2px 10px; }
   p { margin: 0 0 12px; }
   .hint { color: var(--hint); font-size: 14px; }
   .num { font-variant-numeric: tabular-nums; }
-  .big { font-size: 36px; font-weight: 650; letter-spacing: -0.8px; margin: 2px 0 2px; font-variant-numeric: tabular-nums; }
+  .big { font-size: 38px; font-weight: 600; letter-spacing: -1px; margin: 4px 0 2px; line-height: 1.1; }
   .up, .row .sub.up { color: var(--up); }
   .down, .row .sub.down { color: var(--down); }
 
-  .group { background: var(--bg2); border-radius: 14px; overflow: hidden; margin: 0 0 8px; }
+  .group { background: var(--card); border-radius: 18px; overflow: hidden; margin: 0 0 8px; box-shadow: var(--shadow); }
   .row {
     display: flex; align-items: center; gap: 12px;
     width: 100%; padding: 13px 16px;
@@ -79,22 +91,22 @@
 
   .btn {
     display: block; width: 100%; padding: 14px; margin-top: 12px;
-    border: 0; border-radius: 12px; cursor: pointer;
+    border: 0; border-radius: 14px; cursor: pointer;
     font: inherit; font-weight: 600;
-    background: var(--text); color: var(--bg);
+    background: var(--brand); color: #fff;
   }
-  .btn.ghost { background: var(--bg2); color: var(--text); }
+  .btn.ghost { background: var(--card); color: var(--text); box-shadow: var(--shadow); }
   .btn.danger { background: transparent; color: var(--down); }
   .back { background: none; border: 0; color: var(--hint); font: inherit; padding: 0; margin-bottom: 12px; cursor: pointer; }
 
   label { display: block; font-size: 14px; color: var(--hint); margin: 16px 0 6px; }
   input, select {
     width: 100%; padding: 12px 14px; font: inherit; font-size: 16px;
-    color: var(--text); background: var(--bg2);
-    border: 1px solid var(--line); border-radius: 10px; outline: none;
+    color: var(--text); background: var(--card);
+    border: 1px solid var(--line); border-radius: 12px; outline: none;
     appearance: none; -webkit-appearance: none;
   }
-  input:focus, select:focus { border-color: var(--hint); }
+  input:focus, select:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(13, 74, 58, .12); }
   .field-hint { font-size: 12px; color: var(--hint); margin-top: 6px; }
   input[type="date"] { min-height: 48px; text-align: left; }
   .pct-input { width: 84px; text-align: right; padding: 9px 12px; }
@@ -102,12 +114,13 @@
   .sum-big { font-size: 22px; font-weight: 650; }
   .done { color: var(--up); }
 
-  .seg { display: grid; grid-template-columns: repeat(var(--n, 2), 1fr); background: var(--bg2); border-radius: 10px; padding: 3px; }
-  .seg button { border: 0; background: none; padding: 9px; border-radius: 8px; color: var(--hint); font: inherit; font-size: 15px; cursor: pointer; }
-  .seg button.on { color: var(--text); font-weight: 600; }
+  .seg { display: grid; grid-template-columns: repeat(var(--n, 2), 1fr); background: var(--bg2); border-radius: 12px; padding: 3px; }
+  .seg button { border: 0; background: none; padding: 9px; border-radius: 9px; color: var(--hint); font: inherit; font-size: 15px; cursor: pointer; }
+  .seg button.on { color: var(--brand); font-weight: 600; }
+  html[data-theme="dark"] .seg button.on { color: var(--text); }
   .icon-btn {
-    width: 40px; height: 40px; border-radius: 12px; border: 0; cursor: pointer;
-    background: var(--bg2); color: var(--text);
+    width: 40px; height: 40px; border-radius: 12px; border: 0; cursor: pointer; flex-shrink: 0;
+    background: var(--card); color: var(--text); box-shadow: var(--shadow);
     display: flex; align-items: center; justify-content: center;
   }
   .icon-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
@@ -116,7 +129,7 @@
   .seg-sm { flex-shrink: 0; }
   .seg-sm button { padding: 6px 14px; font-size: 15px; min-width: 44px; }
 
-  .result { background: var(--bg2); border-radius: 14px; padding: 16px; margin-top: 20px; }
+  .result { border-radius: 20px; padding: 18px 20px; margin-top: 20px; }
   .result .line { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; font-variant-numeric: tabular-nums; }
   .result .total { font-size: 22px; font-weight: 650; margin-top: 8px; }
 
@@ -134,7 +147,7 @@
     counter-increment: s; content: counter(s);
     position: absolute; left: 0; top: 0;
     width: 24px; height: 24px; border-radius: 50%;
-    background: var(--bg2); font-size: 13px; font-weight: 600;
+    background: var(--brand); color: #fff; font-size: 13px; font-weight: 600;
     display: flex; align-items: center; justify-content: center;
   }
 
@@ -142,14 +155,18 @@
     position: fixed; left: 0; right: 0; bottom: 0;
     display: grid; grid-template-columns: repeat(5, 1fr);
     padding: 6px 4px calc(6px + max(env(safe-area-inset-bottom), var(--bottom-inset, 0px)));
-    background: var(--bg); border-top: 1px solid var(--line);
+    background: var(--card); border-top: 1px solid var(--line);
   }
   nav button {
+    position: relative;
     display: flex; flex-direction: column; align-items: center; gap: 3px;
     background: none; border: 0; padding: 4px 0; cursor: pointer;
     color: var(--hint); font: inherit; font-size: 11px;
   }
-  nav button.on { color: var(--text); font-weight: 600; }
+  nav button.on { color: var(--brand); font-weight: 600; }
+  html[data-theme="dark"] nav button.on { color: #7FD3B3; }
+  nav button::before { content: ""; position: absolute; top: -6px; width: 18px; height: 3px; border-radius: 0 0 3px 3px; background: var(--gold); transform: scaleX(0); transition: transform .3s var(--ease); }
+  nav button.on::before { transform: scaleX(1); }
   nav svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 
   /* ================= ДВИЖЕНИЕ ================= */
@@ -177,7 +194,7 @@
   .seg { position: relative; isolation: isolate; }
   .seg::before {
     content: ""; position: absolute; z-index: -1; top: 3px; bottom: 3px; left: 3px;
-    border-radius: 8px; background: var(--bg);
+    border-radius: 9px; background: var(--card);
     box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
     transition: transform .3s var(--ease);
     width: calc((100% - 6px) / var(--n, 2)); transform: translateX(calc(100% * var(--i, 0)));
@@ -185,7 +202,7 @@
   .seg button.on { background: none; }
 
   /* Смена темы — плавно, иконка поворачивается */
-  body, .group, nav, input, select, .result, .chip, .seg, .steps li::before { transition: background-color .4s ease, color .4s ease, border-color .4s ease; }
+  body, .group, nav, input, select, .chip, .seg, .icon-btn, .btn, .hero { transition: background-color .4s ease, color .4s ease, border-color .4s ease; }
   @keyframes icon-in { from { opacity: 0; transform: rotate(-90deg) scale(.6); } }
   .icon-btn svg.spin { animation: icon-in .35s var(--ease); }
 
@@ -208,7 +225,7 @@
   /* ================= ГРАФИКИ ================= */
   .chart { margin: 14px 0 8px; min-height: 40px; transition: opacity .3s ease; }
   .chart.loading { opacity: .5; }
-  .chart.loading:empty { height: 150px; border-radius: 12px; background: var(--bg2); animation: shimmer 1.2s ease-in-out infinite; }
+  .chart.loading:empty { height: 130px; border-radius: 12px; background: var(--bg2); animation: shimmer 1.2s ease-in-out infinite; }
   .chart-meta { display: flex; align-items: baseline; gap: 8px; min-height: 20px; font-size: 14px; font-variant-numeric: tabular-nums; }
   .chart-meta .strong { font-weight: 600; color: var(--text); }
   .chart-svg { display: block; width: 100%; height: auto; margin-top: 8px; overflow: visible; color: var(--hint); touch-action: pan-y; cursor: crosshair; outline: none; }
@@ -231,6 +248,50 @@
   .spark { width: 56px; height: 26px; flex-shrink: 0; color: var(--hint); }
   .spark svg { display: block; width: 56px; height: 26px; overflow: visible; }
   .spark .c-line { stroke-width: 1.6; }
+
+  /* ================= ФИРМЕННАЯ КАРТОЧКА ================= */
+  .brandbar { display: flex; align-items: center; justify-content: space-between; margin: 2px 0 14px; }
+  .logo { display: flex; align-items: center; gap: 8px; font-size: 20px; font-weight: 700; letter-spacing: .5px; }
+  .logo svg { width: 22px; height: 22px; fill: none; stroke: var(--gold); stroke-width: 1.6; }
+  .logo em { font-style: normal; color: var(--gold); }
+  .hero {
+    position: relative; overflow: hidden; isolation: isolate;
+    background: var(--brand); color: #fff; border-radius: 24px; padding: 18px 20px 16px; margin: 0 0 6px;
+    /* внутри карточки — светлые версии цветов */
+    --text: #FFFFFF; --hint: rgba(255, 255, 255, .64); --line: rgba(255, 255, 255, .12);
+    --bg2: rgba(255, 255, 255, .09); --card: #FFFFFF; --bg: var(--brand);
+    --up: #9FE0C6; --down: #F4A9A1; --warn: #F0CB7A;
+  }
+  .hero .orn { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+  .hero-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 13px; color: var(--hint); min-height: 22px; }
+  .hero-top .gold { color: var(--gold); font-weight: 500; }
+  html[data-theme="light"] .hero-top .gold { color: #D9B45C; }
+  .hero .big { color: #fff; }
+  .big.mid { font-size: 32px; }
+  .hero .sub-line { font-size: 14px; color: var(--hint); }
+  .hero .seg { background: rgba(255, 255, 255, .09); }
+  .hero .seg button { color: rgba(255, 255, 255, .72); }
+  .hero .seg button.on { color: var(--brand); }
+  html[data-theme="dark"] .hero .seg button.on { color: var(--brand); }
+  .hero .seg::before { background: #fff; box-shadow: none; }
+  .hero .chart { margin: 12px 0 10px; }
+  .hero .chart-svg.up { color: #BFEBD8; }
+  .hero .chart-empty { background: rgba(255, 255, 255, .07); }
+  .hero .chip { background: rgba(0, 0, 0, .12); }
+  .hero-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .hero-stats .k { font-size: 12.5px; color: var(--hint); }
+  .hero-stats .v { font-size: 16px; font-weight: 600; margin-top: 2px; }
+  .hero-empty { font-size: 14px; color: var(--hint); margin-top: 8px; line-height: 1.45; }
+  .hero .btn { background: #fff; color: var(--brand); }
+
+  .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .tile { background: var(--card); border-radius: 18px; padding: 14px 16px; box-shadow: var(--shadow); border: 0; text-align: left; font: inherit; color: inherit; cursor: pointer; width: 100%; }
+  .tile .k { font-size: 12.5px; color: var(--hint); }
+  .tile .v { font-size: 18px; font-weight: 600; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .tile .s { font-size: 12.5px; color: var(--hint); margin-top: 3px; }
+  .tag { display: inline-block; font-size: 11px; color: var(--gold); border: 1px solid var(--gold); border-radius: 6px; padding: 1px 6px; margin-top: 6px; }
+  .tile:active { transform: scale(.98); }
+  .tile { transition: transform .12s var(--ease), background-color .4s ease; }
   html.no-trans * { transition: none !important; }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; transition: none !important; }
@@ -264,7 +325,7 @@
 // =====================================================================
 
 // Номер версии — виден внизу раздела «Другое». Меняется при каждом обновлении.
-const APP_VERSION = '0.15';
+const APP_VERSION = '0.16';
 
 // Шариатский комитет — экран в разделе «Другое».
 // Пока список пуст, в приложении написано, что состав и заключения скоро появятся.
@@ -286,7 +347,7 @@ const SUPPORT_USERNAME = '';
 const CATALOG = {
   sukuk: [
     {
-      id: 'veb-59po', name: 'ВЭБ.РФ ПБО-002Р-59ПО', ticker: 'RU000A10FAP5', sector: 'Сукук аль-Мудараба',
+      id: 'veb-59po', name: 'ВЭБ.РФ ПБО-002Р-59ПО', short: 'Сукук ВЭБ', ticker: 'RU000A10FAP5', sector: 'Сукук аль-Мудараба',
       moex: { board: 'TQCB', secid: 'RU000A10FAP5' },
       status: 'ok', statusNote: 'Структура сукук аль-Мудараба: доход — доля прибыли проекта, а не процент.',
       about: 'Выпущен ВЭБ.РФ, торгуется на Мосбирже. Номинал 1 000 ₽, погашение 17 июня 2028 года. Перед покупкой уточните у брокера, доступна ли бумага вам как частному инвестору.'
@@ -669,33 +730,72 @@ const curSwitch = () => `
     <button data-act="set-cur" data-v="usd" class="${cryptoCur === 'usd' ? 'on' : ''}" aria-pressed="${cryptoCur === 'usd'}">$</button>
   </div>`;
 
+// ---------- фирменные элементы ----------
+const STAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12"/><rect x="6" y="6" width="12" height="12" transform="rotate(45 12 12)"/></svg>';
+// Еле заметный орнамент из восьмиконечных звёзд — только на изумрудной карточке
+const ORNAMENT = `<svg class="orn" aria-hidden="true"><defs>
+  <pattern id="orn-p" width="44" height="44" patternUnits="userSpaceOnUse"><g fill="none" stroke="#fff" stroke-opacity=".08" stroke-width="1">
+  <rect x="12" y="12" width="20" height="20"/><rect x="12" y="12" width="20" height="20" transform="rotate(45 22 22)"/>
+  <path d="M0 22H8M36 22H44M22 0V8M22 36V44"/></g></pattern>
+  <linearGradient id="orn-f" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".8" stop-color="#fff" stop-opacity="0"/></linearGradient>
+  <mask id="orn-m"><rect width="100%" height="100%" fill="url(#orn-f)"/></mask></defs>
+  <rect width="100%" height="100%" fill="url(#orn-p)" mask="url(#orn-m)"/></svg>`;
+const hero = inner => `<section class="hero">${ORNAMENT}${inner}</section>`;
+const shortName = a => a.short || a.name;
+function assetCountLabel() {
+  const n = SECTIONS.reduce((sum, sec) => sum + pf[sec].length, 0);
+  if (!n) return '';
+  const m10 = n % 10, m100 = n % 100;
+  const w = m10 === 1 && m100 !== 11 ? 'позиция' : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? 'позиции' : 'позиций';
+  return n + ' ' + w;
+}
+const fmtShort = iso => new Date(iso + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+
+function incomeTiles() {
+  const { ev, loading } = incomeEvents();
+  const next = ev.find(e => e.future && e.amount) || ev.find(e => e.future);
+  const due = ev.filter(e => !e.future && e.purify && !purified[e.key]).reduce((sum, e) => sum + e.purify, 0);
+  const sk = '<div><span class="skel" style="width:90px;height:18px;margin-top:8px"></span></div>';
+  const waiting = loading && !ev.length;
+  const t1 = waiting ? sk : next
+    ? (next.amount
+        ? `<div class="v">≈ ${rub(next.amount)}</div><div class="s">${esc(shortName(next.a))}, ${fmtShort(next.date)}</div>`
+        : `<div class="v">${fmtShort(next.date)}</div><div class="s">${esc(shortName(next.a))}, сумма не объявлена</div>`)
+    : '<div class="v">—</div><div class="s">Объявленных выплат нет</div>';
+  const t2 = waiting ? sk : `<div class="v">${rub(due)}</div><span class="tag">садака</span>`;
+  return `<div class="tiles">
+    <button class="tile" data-go="income"><div class="k">Ближайшая выплата</div>${t1}</button>
+    <button class="tile" data-go="income"><div class="k">К очищению</div>${t2}</button>
+  </div>`;
+}
+
 // ---------- экраны ----------
 const SCREENS = {
   home() {
     const t = allTotals();
-    const hasAny = SECTIONS.some(s => pf[s].length);
-    const rows = SECTIONS.map(s => {
-      const st = secTotals(s);
+    const hasAny = SECTIONS.some(sec => pf[sec].length);
+    const rows = SECTIONS.map(sec => {
+      const st = secTotals(sec);
       const share = t.value ? Math.round(st.value / t.value * 100) : 0;
-      return `<button class="row" data-tab="${s}">
-        <div class="main"><div class="title">${SECTION_INFO[s].title}</div><div class="sub">${pf[s].length ? share + '% портфеля' : 'Нет позиций'}</div></div>
-        ${pf[s].length ? `<span class="spark" data-chart="spark" data-sec="${s}" aria-hidden="true"></span>` : ''}
-        <div class="right"><div>${rub(st.value)}</div><div class="sub ${tone(st.pl)}">${pf[s].length ? signedRub(st.pl) : ''}</div></div>
-        <span class="chev">›</span>
+      return `<button class="row" data-tab="${sec}">
+        <div class="main"><div class="title">${SECTION_INFO[sec].title}</div><div class="sub">${pf[sec].length ? share + '% портфеля' : 'Нет позиций'}</div></div>
+        ${pf[sec].length ? `<span class="spark" data-chart="spark" data-sec="${sec}" aria-hidden="true"></span>` : ''}
+        <div class="right"><div>${rub(st.value)}</div><div class="sub ${tone(st.pl)}">${pf[sec].length ? signedRub(st.pl) : ''}</div></div>
       </button>`;
     }).join('');
     return `
-      <div class="head-row"><p class="hint" style="margin:0">Стоимость портфеля</p>${themeBtn()}</div>
-      <div class="big" id="total">${rub(t.value)}</div>
-      <div class="num ${tone(t.pl)}">${hasAny ? signedRub(t.pl) + ' ' + (t.cost ? '(' + pctOf(t.pl, t.cost) + ')' : '') + ' <span class="hint">за всё время</span>' : '&nbsp;'}</div>
-      ${hasAny ? `<div class="chart" data-chart="portfolio" data-h="110"></div>${periodSeg()}` : ''}
+      <div class="brandbar"><div class="logo">${STAR}<span>NAMA<em>.</em></span></div>${themeBtn()}</div>
+      ${hero(`
+        <div class="hero-top"><span>Стоимость портфеля</span><span class="gold">${assetCountLabel()}</span></div>
+        <div class="big num" id="total">${rub(t.value)}</div>
+        <div class="sub-line num">${hasAny
+          ? `<span class="${tone(t.pl)}">${signedRub(t.pl)}${t.cost ? ' (' + pctOf(t.pl, t.cost) + ')' : ''}</span> за всё время`
+          : 'Откройте раздел внизу и добавьте свой первый актив.'}</div>
+        ${hasAny ? `<div class="chart" data-chart="portfolio" data-h="96"></div>${periodSeg()}` : ''}
+      `)}
       <h2>Разделы</h2>
       <div class="group">${rows}</div>
-      ${hasIncomeAssets() ? `<h2>Доходы</h2>
-      <div class="group">
-        <button class="row" data-go="income"><div class="main"><div class="title">Дивиденды и очищение</div><div class="sub">${incomeTeaser()}</div></div><span class="chev">›</span></button>
-      </div>` : ''}
-      ${hasAny ? '' : '<p class="hint" style="margin-top:12px">Откройте раздел и добавьте свой первый актив.</p>'}
+      ${hasIncomeAssets() ? `<h2>Доходы</h2>${incomeTiles()}` : ''}
       <p class="note">${priceStatus()}</p>
       ${disclaimer}`;
   },
@@ -715,13 +815,15 @@ const SCREENS = {
       </button>`).join('');
     return `
       ${backLink()}
-      <div class="head-row"><h1>${info.title}</h1>${themeBtn()}</div>
-      <div class="head-row" style="margin-top:4px">
-        <div class="num">${money(st.value, cu)} <span class="${tone(st.pl)}">${pf[sec].length ? signedMoney(st.pl, cu) : ''}</span></div>
-        ${sec === 'crypto' ? curSwitch() : ''}
-      </div>
-      ${sec === 'crypto' && usdRub ? `<div class="hint num" style="margin-top:2px">Курс: 1 $ = ${rub(usdRub)}</div>` : ''}
-      ${pf[sec].length ? `<div class="chart" data-chart="section" data-sec="${sec}" data-h="100"></div>${periodSeg()}` : ''}
+      <div class="brandbar"><h1 style="margin:0">${info.title}</h1>${themeBtn()}</div>
+      ${hero(`
+        <div class="hero-top"><span>Стоимость раздела</span>${sec === 'crypto' ? curSwitch() : ''}</div>
+        <div class="big mid num">${money(st.value, cu)}</div>
+        <div class="sub-line num">${pf[sec].length
+          ? `<span class="${tone(st.pl)}">${signedMoney(st.pl, cu)}</span> за всё время`
+          : 'Добавьте первую позицию: здесь появятся её стоимость и график.'}${sec === 'crypto' && usdRub ? `<br>Курс: 1 $ = ${rub(usdRub)}` : ''}</div>
+        ${pf[sec].length ? `<div class="chart" data-chart="section" data-sec="${sec}" data-h="90"></div>${periodSeg()}` : ''}
+      `)}
       <h2>Мои позиции</h2>
       <div class="group">${mine}</div>
       <button class="btn" data-go="edit" data-sec="${sec}">Добавить актив</button>
@@ -736,13 +838,17 @@ const SCREENS = {
     const a = findAsset(c.sec, c.id);
     if (!a) return backLink() + '<p>Актив не найден.</p>';
     const note = a.statusNote || DEFAULT_NOTE[c.sec];
+    const cu = dispCur(c.sec);
     return `
       ${backLink()}
-      <h1>${esc(a.name)}</h1>
-      ${livePrice(a.id, dispCur(c.sec)) ? `<div class="asset-price">${priceLine(a.id, dispCur(c.sec))}</div>` : ''}
-      <p style="margin:8px 0 6px">${chip(a.status)}</p>
-      ${hasHistory(c.sec, a) ? `<div class="chart" data-chart="asset" data-sec="${c.sec}" data-id="${a.id}" data-h="120"></div>${periodSeg()}` : ''}
-      <div class="group" style="margin-top:18px">
+      <h1 style="margin-bottom:14px">${esc(a.name)}</h1>
+      ${hero(`
+        <div class="hero-top"><span>${esc(c.sec === 'sukuk' ? a.sector : a.ticker || SECTION_INFO[c.sec].title)}</span>${chip(a.status)}</div>
+        <div class="big mid num"><span class="${flashCls(a.id)}">${livePrice(a.id, cu) ? money(livePrice(a.id, cu), cu) : '—'}</span></div>
+        <div class="sub-line num">${livePrice(a.id, cu) ? (changeHtml(a.id, cu) ? changeHtml(a.id, cu).trim() + ' за день' : 'Текущая цена') : (pricesAt ? 'Цена сейчас недоступна' : 'Загружаем цену…')}</div>
+        ${hasHistory(c.sec, a) ? `<div class="chart" data-chart="asset" data-sec="${c.sec}" data-id="${a.id}" data-h="100"></div>${periodSeg()}` : ''}
+      `)}
+      <div class="group" style="margin-top:14px">
         ${a.ticker ? `<div class="detail-row"><span>${c.sec === 'sukuk' ? 'Код (ISIN)' : 'Тикер'}</span><span>${esc(a.ticker)}</span></div>` : ''}
         <div class="detail-row"><span>${c.sec === 'sukuk' ? 'Тип' : c.sec === 'crypto' ? 'Назначение' : 'Отрасль'}</span><span>${esc(a.sector)}</span></div>
         <div class="detail-row"><span>Раздел</span><span>${SECTION_INFO[c.sec].title}</span></div>
@@ -795,7 +901,7 @@ const SCREENS = {
       ? `<button class="row" data-act="support"><div class="main"><div class="title">Поддержка</div><div class="sub">Чат с командой</div></div><span class="chev">›</span></button>`
       : `<div class="row static"><div class="main"><div class="title">Поддержка</div></div><span class="hint">Скоро</span></div>`;
     return `
-      <div class="head-row"><h1>Другое</h1>${themeBtn()}</div>
+      <div class="brandbar"><h1 style="margin:0">Другое</h1>${themeBtn()}</div>
       <h2>Халяль</h2>
       <div class="group">
         <button class="row" data-go="committee"><div class="main"><div class="title">Шариатский комитет</div><div class="sub">Кто и как проверяет активы</div></div><span class="chev">›</span></button>
@@ -814,7 +920,8 @@ const SCREENS = {
       </div>
       <h2>Связь</h2>
       <div class="group">${support}</div>
-      <p class="note" style="text-align:center;margin-top:28px">NAMA Invest, версия ${APP_VERSION}</p>`;
+      <div class="logo" style="justify-content:center;margin-top:30px;font-size:15px;opacity:.75">${STAR}<span>NAMA<em>.</em></span></div>
+      <p class="note" style="text-align:center;margin-top:6px">Версия ${APP_VERSION}</p>`;
   },
 
   income() {
@@ -830,13 +937,16 @@ const SCREENS = {
     const list = (arr, empty) => loading && !arr.length ? skel + skel : (arr.length ? arr.map(incomeRow).join('') : `<div class="empty">${empty}</div>`);
     return `
       ${backLink()}
-      <h1>Дивиденды и очищение</h1>
-      <div class="group" style="margin-top:16px">
-        <div class="detail-row"><span>Ожидается</span><span class="num">${rub(expected)}</span></div>
-        <div class="detail-row"><span>Получено за 12 месяцев</span><span class="num">${rub(received)}</span></div>
-        <div class="detail-row"><span>К очищению</span><span class="num sum-big">${rub(due)}</span></div>
-        ${done > 0 ? `<div class="detail-row"><span>Уже очищено</span><span class="num done">${rub(done)}</span></div>` : ''}
-      </div>
+      <h1 style="margin-bottom:14px">Дивиденды и очищение</h1>
+      ${hero(`
+        <div class="hero-top"><span>К очищению</span><span class="gold">садака</span></div>
+        <div class="big num">${rub(due)}</div>
+        <div class="hero-stats">
+          <div><div class="k">Ожидается</div><div class="v num">${rub(expected)}</div></div>
+          <div><div class="k">Получено за 12 месяцев</div><div class="v num">${rub(received)}</div></div>
+          ${done > 0 ? `<div><div class="k">Уже очищено</div><div class="v num">${rub(done)}</div></div>` : ''}
+        </div>
+      `)}
       ${failed ? `<p class="note">Не удалось загрузить данные Мосбиржи по ${failed} из ${total} бумаг. Попробуем снова через пару минут.</p>` : ''}
 
       <h2>Ближайшие выплаты</h2>
@@ -953,7 +1063,7 @@ const SCREENS = {
       ${field('recv', 'Долги вам, ₽', 'Только те, которые вам реально вернут.')}
       <h2>Вычеты</h2>
       ${field('debt', 'Ваши долги к оплате, ₽')}
-      <div class="result" id="zk-result">${zakatResult()}</div>
+      <div class="result hero" id="zk-result" style="margin-top:20px">${zakatResult()}</div>
       <p class="note">Закят обязателен, если сумма не опускалась ниже нисаба в течение лунного года. По акциям мнения учёных расходятся: одни берут полную рыночную стоимость, другие — только долю оборотных активов компании. Калькулятор считает по полной стоимости, это осторожный вариант.</p>`;
   }
 };
@@ -1290,7 +1400,7 @@ function incomeRow(e) {
   else if (e.purify == null) right2 = '<div class="sub">укажите % очищения</div>';
   else if (!e.future && purified[e.key]) right2 = '<div class="sub done">очищено ' + rub(e.purify) + '</div>';
   else right2 = '<div class="sub">' + (e.future ? 'очищение ≈ ' : 'к очищению ') + rub(e.purify) + '</div>';
-  const inner = `<div class="main"><div class="title">${esc(e.a.name)}</div><div class="sub num">${what}</div></div>
+  const inner = `<div class="main"><div class="title">${esc(shortName(e.a))}</div><div class="sub num">${what}</div></div>
     <div class="right"><div>${e.amount != null ? (e.future ? '≈ ' : '') + rub(e.amount) : 'сумма не объявлена'}</div>${right2}</div>`;
   const toggle = isDiv && !e.future && e.purify;
   return toggle
@@ -1572,7 +1682,7 @@ window.addEventListener('resize', () => {
 // themePref: 'light' или 'dark', если пользователь выбрал вручную; null — как в Telegram.
 let themePref = null;
 try { const t = localStorage.getItem('theme'); if (t === 'light' || t === 'dark') themePref = t; } catch (e) {}
-const THEME_BG = { light: '#ffffff', dark: '#17181a' };
+const THEME_BG = { light: '#F3F4F1', dark: '#111312' };
 
 function systemTheme() {
   if (inTelegram) return tg.colorScheme === 'dark' ? 'dark' : 'light';
@@ -1583,13 +1693,14 @@ const currentTheme = () => themePref || systemTheme();
 function applyScheme() {
   const t = currentTheme();
   const root = document.documentElement;
-  // В Telegram без ручного выбора берём его родные цвета; вне Telegram цвета задаём сами.
-  if (themePref || !inTelegram) root.dataset.theme = t; else delete root.dataset.theme;
+  // Цвета всегда фирменные; из Telegram берём только светлую или тёмную схему.
+  root.dataset.theme = t;
   root.dataset.scheme = t;
   if (inTelegram && atLeast('6.1')) {
     try {
-      if (themePref && atLeast('6.9')) { tg.setHeaderColor(THEME_BG[t]); tg.setBackgroundColor(THEME_BG[t]); }
-      else { tg.setHeaderColor('bg_color'); tg.setBackgroundColor('bg_color'); }
+      if (atLeast('6.9')) tg.setHeaderColor(THEME_BG[t]); else tg.setHeaderColor('bg_color');
+      tg.setBackgroundColor(THEME_BG[t]);
+      if (atLeast('7.10') && tg.setBottomBarColor) tg.setBottomBarColor(t === 'dark' ? '#1C1F1E' : '#FFFFFF');
     } catch (e) {}
   }
 }
