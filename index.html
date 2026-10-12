@@ -325,7 +325,7 @@
 // =====================================================================
 
 // Номер версии — виден внизу раздела «Другое». Меняется при каждом обновлении.
-const APP_VERSION = '0.16';
+const APP_VERSION = '0.17';
 
 // Шариатский комитет — экран в разделе «Другое».
 // Пока список пуст, в приложении написано, что состав и заключения скоро появятся.
@@ -374,18 +374,22 @@ const CATALOG = {
       statusNote: 'Долг компании заметно вырос. Нужна перепроверка по фильтру долга.' }
   ],
   crypto: [
-    // cg — идентификатор монеты на CoinGecko, по нему подтягиваются цена и график.
-    { id: 'BTC',  name: 'Bitcoin',   ticker: 'BTC',  cg: 'bitcoin',                 sector: 'Сеть платежей',                 status: 'disputed' },
-    { id: 'ETH',  name: 'Ethereum',  ticker: 'ETH',  cg: 'ethereum',                sector: 'Платформа смарт-контрактов',    status: 'disputed' },
-    { id: 'TON',  name: 'Toncoin',   ticker: 'TON',  cg: 'the-open-network',        sector: 'Блокчейн экосистемы Telegram',  status: 'disputed' },
-    { id: 'SOL',  name: 'Solana',    ticker: 'SOL',  cg: 'solana',                  sector: 'Платформа смарт-контрактов',    status: 'disputed' },
-    { id: 'XRP',  name: 'XRP',       ticker: 'XRP',  cg: 'ripple',                  sector: 'Сеть международных переводов',  status: 'disputed' },
-    { id: 'ADA',  name: 'Cardano',   ticker: 'ADA',  cg: 'cardano',                 sector: 'Платформа смарт-контрактов',    status: 'disputed' },
-    { id: 'LINK', name: 'Chainlink', ticker: 'LINK', cg: 'chainlink',               sector: 'Передача внешних данных в блокчейн', status: 'disputed' },
-    { id: 'AVAX', name: 'Avalanche', ticker: 'AVAX', cg: 'avalanche-2',             sector: 'Платформа смарт-контрактов',    status: 'disputed' },
-    { id: 'DOT',  name: 'Polkadot',  ticker: 'DOT',  cg: 'polkadot',                sector: 'Сеть для связи блокчейнов',     status: 'disputed' },
-    { id: 'LTC',  name: 'Litecoin',  ticker: 'LTC',  cg: 'litecoin',                sector: 'Сеть платежей',                 status: 'disputed' },
-    { id: 'POL',  name: 'Polygon',   ticker: 'POL',  cg: 'polygon-ecosystem-token', sector: 'Сеть поверх Ethereum',          status: 'disputed' }
+    // cg — идентификатор монеты на CoinGecko (цена), bybit — пара на Bybit (история для графика).
+    { id: 'BTC',  name: 'Bitcoin',   ticker: 'BTC',  cg: 'bitcoin',                 bybit: 'BTCUSDT', sector: 'Сеть платежей',                 status: 'disputed' },
+    { id: 'ETH',  name: 'Ethereum',  ticker: 'ETH',  cg: 'ethereum',                bybit: 'ETHUSDT', sector: 'Платформа смарт-контрактов',    status: 'disputed' },
+    { id: 'TON',  name: 'Toncoin',   ticker: 'TON',  cg: 'the-open-network',        bybit: 'TONUSDT', sector: 'Блокчейн экосистемы Telegram',  status: 'disputed' },
+    { id: 'SOL',  name: 'Solana',    ticker: 'SOL',  cg: 'solana',                  bybit: 'SOLUSDT', sector: 'Платформа смарт-контрактов',    status: 'disputed' },
+    { id: 'XRP',  name: 'XRP',       ticker: 'XRP',  cg: 'ripple',                  bybit: 'XRPUSDT', sector: 'Сеть международных переводов',  status: 'disputed' },
+    { id: 'ADA',  name: 'Cardano',   ticker: 'ADA',  cg: 'cardano',                 bybit: 'ADAUSDT', sector: 'Платформа смарт-контрактов',    status: 'disputed' },
+    { id: 'LINK', name: 'Chainlink', ticker: 'LINK', cg: 'chainlink',               bybit: 'LINKUSDT', sector: 'Передача внешних данных в блокчейн', status: 'disputed' },
+    { id: 'AVAX', name: 'Avalanche', ticker: 'AVAX', cg: 'avalanche-2',             bybit: 'AVAXUSDT', sector: 'Платформа смарт-контрактов',    status: 'disputed' },
+    { id: 'DOT',  name: 'Polkadot',  ticker: 'DOT',  cg: 'polkadot',                bybit: 'DOTUSDT', sector: 'Сеть для связи блокчейнов',     status: 'disputed' },
+    { id: 'LTC',  name: 'Litecoin',  ticker: 'LTC',  cg: 'litecoin',                bybit: 'LTCUSDT', sector: 'Сеть платежей',                 status: 'disputed' },
+    { id: 'POL',  name: 'Polygon',   ticker: 'POL',  cg: 'polygon-ecosystem-token', bybit: 'POLUSDT', sector: 'Сеть поверх Ethereum',          status: 'disputed' },
+    { id: 'FIL',  name: 'Filecoin',  ticker: 'FIL',  cg: 'filecoin',                bybit: 'FILUSDT',  sector: 'Децентрализованное хранение файлов', status: 'disputed' },
+    { id: 'S',    name: 'Sonic',     ticker: 'S',    cg: 'sonic-3',                 bybit: 'SUSDT',    sector: 'Платформа смарт-контрактов (бывший Fantom)', status: 'disputed' },
+    { id: 'GALA', name: 'Gala',      ticker: 'GALA', cg: 'gala',                    bybit: 'GALAUSDT', sector: 'Платформа блокчейн-игр', status: 'disputed',
+      statusNote: 'Скринеры расходятся: HalalScreener считает GALA соответствующей, Sharlife относит к «серой зоне». Gala — платформа блокчейн-игр, поэтому вопросы вызывают содержание игр и спекуляция игровыми NFT. Совет улемов ДУМ РФ (заключение № 4/23) считает покупку криптовалюты для накопления недопустимой. Окончательное решение — за шариатским комитетом NAMA.' }
   ]
 };
 
@@ -492,7 +496,10 @@ const rub = v => nf.format(round2(v)) + ' ₽';
 const sign = v => (v > 0 ? '+' : v < 0 ? '−' : '');
 const signedRub = v => sign(v) + nf.format(Math.abs(round2(v))) + ' ₽';
 const SYM = { rub: '₽', usd: '$' };
-const money = (v, c = 'rub') => nf.format(round2(v)) + ' ' + SYM[c];
+// Дешёвые монеты (GALA, S и т. п.) показываем с тремя значащими цифрами, иначе 0,0198 превращается в 0,02
+const nfSmall = new Intl.NumberFormat('ru-RU', { maximumSignificantDigits: 3 });
+const fmtAmt = v => (v !== 0 && Math.abs(v) < 1 ? nfSmall.format(v) : nf.format(round2(v)));
+const money = (v, c = 'rub') => fmtAmt(v) + ' ' + SYM[c];
 const signedMoney = (v, c = 'rub') => sign(v) + nf.format(Math.abs(round2(v))) + ' ' + SYM[c];
 
 // Валюта отображения: в разделе «Криптовалюта» её выбирает пользователь, в остальных — рубль.
@@ -603,7 +610,7 @@ async function loadSukukPrices() {
 async function loadCryptoPrices() {
   const ids = CATALOG.crypto.map(a => a.cg).filter(Boolean).join(',');
   if (!ids) return;
-  const j = await fetchJSON('https://api.coingecko.com/api/v3/simple/price?ids=' + ids + '&vs_currencies=rub,usd&include_24hr_change=true');
+  const j = await cgFetch('https://api.coingecko.com/api/v3/simple/price?ids=' + ids + '&vs_currencies=rub,usd&include_24hr_change=true');
   const rates = [];
   CATALOG.crypto.forEach(a => {
     const d = j[a.cg];
@@ -1432,8 +1439,16 @@ function periodSeg() {
 }
 
 const hasHistory = (sec, a) => !!(a && (sec === 'crypto' ? a.cg : sec === 'sukuk' ? a.moex : a.ticker));
-const rawKey = (sec, id, period, cu) => [sec, id, period, sec === 'crypto' ? cu : 'rub'].join('|');
-const rawSync = (sec, id, period, cu) => rawCache[rawKey(sec, id, period, cu)];
+// История крипты всегда хранится в долларах (так её отдают биржи), в рубли переводим по текущему курсу.
+const rawKey = (sec, id, period) => [sec, id, period, sec === 'crypto' ? 'usd' : 'rub'].join('|');
+function rawSync(sec, id, period) {
+  const key = rawKey(sec, id, period);
+  if (!rawCache[key]) {
+    try { const c = JSON.parse(localStorage.getItem('h:' + key)); if (c && Array.isArray(c.t)) rawCache[key] = c; } catch (e) {}
+  }
+  return rawCache[key];
+}
+const toCur = (sec, v, cu) => (sec === 'crypto' && cu === 'rub' ? (usdRub ? v * usdRub : null) : v);
 const isFresh = c => !!c && Date.now() - c.at < (c.err ? 120000 : RAW_TTL);
 
 function downsample(t, v, max = 180) {
@@ -1447,8 +1462,8 @@ async function fetchRaw(sec, a, period, cu) {
   const P = periodOf(period);
   const t = [], v = [];
   if (sec === 'crypto') {
-    const j = await fetchJSON('https://api.coingecko.com/api/v3/coins/' + a.cg + '/market_chart?vs_currency=' + cu + '&days=' + P.days);
-    (j.prices || []).forEach(([ms, val]) => { if (val > 0) { t.push(ms); v.push(val); } });
+    const r = await fetchCryptoHistory(a, period);
+    return downsample(r.t, r.v);
   } else {
     const from = new Date(Date.now() - P.days * 86400000).toISOString().slice(0, 10);
     const base = sec === 'stocks'
@@ -1464,12 +1479,55 @@ async function fetchRaw(sec, a, period, cu) {
   return downsample(t, v);
 }
 
+// --- крипта: сначала Bybit, затем Binance (у обеих мягкие лимиты), в крайнем случае CoinGecko через очередь ---
+let bybitOk = true;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+let cgChain = Promise.resolve();
+// CoinGecko бесплатно даёт мало запросов в минуту: шлём по одному, с паузой и одной повторной попыткой
+function cgFetch(url) {
+  const job = cgChain.then(() => fetchJSON(url)).catch(async () => { await sleep(5000); return fetchJSON(url); });
+  cgChain = job.catch(() => {}).then(() => sleep(1500));
+  return job;
+}
+const BYBIT_IV = { '1W': ['60', 168], '1M': ['240', 180], '3M': ['D', 90], '1Y': ['D', 365] };
+let binanceOk = true;
+const BINANCE_IV = { '1W': ['1h', 168], '1M': ['4h', 180], '3M': ['1d', 90], '1Y': ['1d', 365] };
+async function fetchCryptoHistory(a, period) {
+  if (a.bybit && bybitOk) {
+    try {
+      const [iv, limit] = BYBIT_IV[period] || BYBIT_IV['1M'];
+      const j = await fetchJSON('https://api.bybit.com/v5/market/kline?category=spot&symbol=' + a.bybit + '&interval=' + iv + '&limit=' + limit);
+      const list = (j && j.retCode === 0 && j.result && j.result.list) || [];
+      if (list.length > 1) {
+        const rows = list.slice().reverse();
+        return { t: rows.map(r => +r[0]), v: rows.map(r => +r[4]) };
+      }
+    } catch (e) { bybitOk = false; }      // недоступен из этой сети — пробуем другие источники
+  }
+  if (a.bybit && binanceOk) {
+    try {
+      const [iv, limit] = BINANCE_IV[period] || BINANCE_IV['1M'];
+      const rows = await fetchJSON('https://api.binance.com/api/v3/klines?symbol=' + a.bybit + '&interval=' + iv + '&limit=' + limit);
+      if (Array.isArray(rows) && rows.length > 1) return { t: rows.map(r => +r[0]), v: rows.map(r => +r[4]) };
+    } catch (e) { binanceOk = false; }
+  }
+  const P = periodOf(period);
+  const j = await cgFetch('https://api.coingecko.com/api/v3/coins/' + a.cg + '/market_chart?vs_currency=usd&days=' + P.days);
+  const t = [], v = [];
+  (j.prices || []).forEach(([ms, val]) => { if (val > 0) { t.push(ms); v.push(val); } });
+  return { t, v };
+}
+
 function ensureRaw(n) {
-  const key = rawKey(n.sec, n.a.id, n.period, n.cur);
-  if (isFresh(rawCache[key])) return Promise.resolve(rawCache[key]);
+  const key = rawKey(n.sec, n.a.id, n.period);
+  if (isFresh(rawSync(n.sec, n.a.id, n.period))) return Promise.resolve(rawCache[key]);
   if (!rawPending[key]) {
-    rawPending[key] = fetchRaw(n.sec, n.a, n.period, n.cur)
-      .then(r => (rawCache[key] = { at: Date.now(), t: r.t, v: r.v }))
+    rawPending[key] = fetchRaw(n.sec, n.a, n.period)
+      .then(r => {
+        rawCache[key] = { at: Date.now(), t: r.t, v: r.v };
+        try { localStorage.setItem('h:' + key, JSON.stringify(rawCache[key])); } catch (e) {}
+        return rawCache[key];
+      })
       .catch(e => (rawCache[key] = { at: Date.now(), t: [], v: [], err: true, msg: String(e && e.message || e) }))
       .finally(() => { delete rawPending[key]; });
   }
@@ -1509,10 +1567,11 @@ function buildPortfolio(period, cu) {
     const c = sec === 'crypto' ? cu : 'rub';
     const v = new Array(N).fill(0);
     for (const p of pf[sec]) {
-      const raw = p.a ? rawSync(sec, p.a, period, c) : null;
+      const raw = p.a ? rawSync(sec, p.a, period) : null;
       const live = priceOf(p, c);
       for (let i = 0; i < N; i++) {
-        const h = raw && i < N - 1 ? valueAt(raw, t[i]) : null;
+        let h = raw && i < N - 1 ? valueAt(raw, t[i]) : null;
+        if (h != null) h = toCur(sec, h, c);
         v[i] += p.q * (h == null ? live : h);
       }
     }
@@ -1522,9 +1581,10 @@ function buildPortfolio(period, cu) {
 }
 
 function assetSeries(sec, a, period, cu) {
-  const raw = rawSync(sec, a.id, period, cu);
+  const raw = rawSync(sec, a.id, period);
   if (!raw || !raw.t.length) return null;
-  const t = raw.t.slice(), v = raw.v.slice();
+  if (sec === 'crypto' && cu === 'rub' && !usdRub) return null;
+  const t = raw.t.slice(), v = raw.v.map(x => toCur(sec, x, cu));
   const live = livePrice(a.id, cu);
   if (live) { t.push(Date.now()); v.push(live); }
   return { t, v };
