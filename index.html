@@ -338,14 +338,74 @@
   .tag { display: inline-block; font-size: 11px; color: var(--gold); border: 1px solid var(--gold); border-radius: 6px; padding: 1px 6px; margin-top: 6px; }
   .tile:active { transform: scale(.98); }
   .tile { transition: transform .12s var(--ease), background-color .4s ease; }
+
+  /* ===== Заставка при запуске (не дольше загрузки, минимум ~1 с) ===== */
+  #splash {
+    position: fixed; inset: 0; z-index: 200; background: #0D4A3A;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+    transition: opacity .45s ease, visibility .45s ease;
+  }
+  html[data-theme="dark"] #splash { background: #0F4F3E; }
+  #splash.hide { opacity: 0; visibility: hidden; }
+  #splash .sp-in { display: flex; flex-direction: column; align-items: center; gap: 18px; transition: transform .45s var(--ease); }
+  #splash.hide .sp-in { transform: scale(1.06); }
+  .sp-star { width: 92px; height: 92px; overflow: visible; }
+  .sp-turn { transform-origin: 60px 60px; animation: star-turn .9s var(--ease) both; }
+  .sp-sq { fill: none; stroke: #E2C06A; stroke-width: 3.5; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw-line .6s var(--ease) .05s forwards; }
+  .sp-sq2 { animation-delay: .2s; }
+  .sp-core { fill: #E2C06A; transform-origin: 60px 60px; animation: core-pop .4s cubic-bezier(.34, 1.56, .64, 1) .55s both; }
+  .sp-word { color: #fff; font-family: "Onest", -apple-system, system-ui, sans-serif; font-size: 26px; font-weight: 700; letter-spacing: 5px; animation: fade-up .5s var(--ease) .45s both; }
+  .sp-word em { font-style: normal; color: #E2C06A; }
+
+  /* ===== Знакомство при первом запуске ===== */
+  .ob {
+    position: fixed; inset: 0; z-index: 150; background: var(--bg); display: flex; flex-direction: column;
+    padding: calc(14px + var(--top-inset, 0px)) 0 calc(18px + max(env(safe-area-inset-bottom), var(--bottom-inset, 0px)));
+    animation: fade-in .35s ease both;
+  }
+  .ob.closing { animation: fade-out .3s ease forwards; }
+  .ob-top { display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
+  .ob-skip { border: 0; background: none; color: var(--hint); font: inherit; font-size: 15px; padding: 8px 0; cursor: pointer; }
+  .ob-view { flex: 1; overflow: hidden; touch-action: pan-y; }
+  .ob-track { display: flex; width: 300%; height: 100%; transition: transform .5s var(--ease); }
+  .ob-slide { width: 33.3333%; padding: 18px 20px 0; display: flex; flex-direction: column; justify-content: center; }
+  .ob-art { margin: 0 auto 26px; width: 100%; max-width: 340px; }
+  .ob-title { font-size: 26px; font-weight: 700; letter-spacing: -.4px; line-height: 1.2; margin: 0 0 10px; }
+  .ob-text { font-size: 16px; line-height: 1.55; color: var(--hint); margin: 0; }
+  .ob-slide.active .ob-art { animation: fade-up .55s var(--ease) .05s both; }
+  .ob-slide.active .ob-title { animation: fade-up .55s var(--ease) .15s both; }
+  .ob-slide.active .ob-text { animation: fade-up .55s var(--ease) .25s both; }
+  .ob-bottom { padding: 0 20px; }
+  .ob-dots { display: flex; justify-content: center; gap: 6px; margin: 4px 0 16px; }
+  .ob-dots i { width: 7px; height: 7px; border-radius: 4px; background: var(--line); transition: width .35s var(--ease), background-color .35s ease; }
+  .ob-dots i.on { width: 22px; background: var(--gold); }
+  .ob-alt { display: block; width: 100%; margin-top: 8px; padding: 12px; border: 0; background: none; color: var(--brand); font: inherit; font-weight: 600; cursor: pointer; }
+  html[data-theme="dark"] .ob-alt { color: #7FD3B3; }
+  .ob-alt[hidden] { display: none; }
+  .ob-card { position: relative; overflow: hidden; isolation: isolate; background: var(--brand); color: #fff; border-radius: 24px; padding: 18px 20px; text-align: left; }
+  .ob-card .orn { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; }
+  .ob-card .k { font-size: 13px; color: rgba(255, 255, 255, .65); }
+  .ob-card .v { font-size: 32px; font-weight: 600; letter-spacing: -.8px; margin: 2px 0; }
+  .ob-card .s { font-size: 13px; color: #9FE0C6; }
+  .ob-ico { width: 30px; height: 30px; border-radius: 9px; background: var(--brand); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .ob-ico svg { width: 16px; height: 16px; fill: none; stroke: #E2C06A; stroke-width: 1.8; }
   html.no-trans * { transition: none !important; }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; transition: none !important; }
+    .sp-sq, .pop-star .sq { stroke-dashoffset: 0; }
+    .pop-star .ray { display: none; }
   }
 </style>
 </head>
 <body>
-<main id="app"><p class="hint">Загрузка…</p></main>
+<div id="splash" aria-hidden="true"><div class="sp-in">
+  <svg class="sp-star" viewBox="0 0 120 120"><g class="sp-turn">
+    <rect class="sp-sq" pathLength="1" x="30" y="30" width="60" height="60"/>
+    <rect class="sp-sq sp-sq2" pathLength="1" x="30" y="30" width="60" height="60" transform="rotate(45 60 60)"/>
+  </g><circle class="sp-core" cx="60" cy="60" r="8"/></svg>
+  <div class="sp-word">NAMA<em>.</em></div>
+</div></div>
+<main id="app"></main>
 
 <nav id="nav">
   <button data-tab="home">
@@ -371,7 +431,7 @@
 // =====================================================================
 
 // Номер версии — виден внизу раздела «Другое». Меняется при каждом обновлении.
-const APP_VERSION = '0.18';
+const APP_VERSION = '0.19';
 
 // Шариатский комитет — экран в разделе «Другое».
 // Пока список пуст, в приложении написано, что состав и заключения скоро появятся.
@@ -964,6 +1024,7 @@ const SCREENS = {
       </div>
       <h2>Обучение</h2>
       <div class="group">
+        <button class="row" data-act="onboard"><div class="main"><div class="title">Знакомство с NAMA</div><div class="sub">Как устроено приложение</div></div><span class="chev">›</span></button>
         <button class="row" data-go="lessons"><div class="main"><div class="title">Уроки</div><div class="sub">${LESSONS.length} коротких уроков</div></div><span class="chev">›</span></button>
         <button class="row" data-go="guide"><div class="main"><div class="title">Как открыть брокерский счёт</div><div class="sub">Пошаговая инструкция</div></div><span class="chev">›</span></button>
       </div>
@@ -1282,6 +1343,7 @@ const ACTIONS = {
     slideSeg(el, el.dataset.v === 'silver' ? 1 : 0, () => { zk.basis = el.dataset.v; render(false); });
   },
   theme: toggleTheme,
+  onboard: () => showOnboarding(),
   'toggle-purified': el => {
     const k = el.dataset.k;
     if (purified[k]) delete purified[k]; else purified[k] = true;
@@ -1370,7 +1432,7 @@ function render(resetScroll = true, anim = null) {
   const root = stack[0].name;
   document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === root));
   if (c.name === 'edit') updatePriceField();
-  if (c.name === 'home') countTotal();
+  if (c.name === 'home' && !document.getElementById('splash')) countTotal();
   if (countFrom && countFrom.sec === c.name) {
     const el = $('#sec-total'), cu = dispCur(c.name);
     if (el) animateNumber(el, countFrom.from, secTotals(c.name, cu).value, v => money(v, cu), 900, 300);
@@ -1969,6 +2031,123 @@ function goFullscreen() {
 // Запасной вариант: некоторые версии Telegram разрешают полный экран только после касания.
 document.addEventListener('click', () => { if (isPhone() && !tg.isFullscreen) goFullscreen(); }, { capture: true, once: true });
 
+
+// ---------- заставка ----------
+const SPLASH_BG = { light: '#0D4A3A', dark: '#0F4F3E' };
+function splashHeader() {
+  if (!inTelegram || !document.getElementById('splash')) return;
+  try {
+    const c = SPLASH_BG[currentTheme()];
+    if (atLeast('6.9')) tg.setHeaderColor(c);
+    if (atLeast('6.1')) tg.setBackgroundColor(c);
+  } catch (e) {}
+}
+// Заставка держится, пока грузится приложение, но не меньше ~1 с — чтобы звезда успела прорисоваться
+function hideSplash() {
+  const sp = document.getElementById('splash');
+  if (!sp) return Promise.resolve();
+  const wait = reduceMotion() ? 0 : Math.max(0, 1050 - performance.now());
+  return new Promise(resolve => setTimeout(() => {
+    sp.classList.add('hide');
+    applyScheme();
+    setTimeout(() => {
+      sp.remove();
+      if (cur().name === 'home') countTotal();
+      chartAnimate = true;
+      mountCharts();
+      resolve();
+    }, reduceMotion() ? 0 : 450);
+  }, wait));
+}
+
+// ---------- знакомство при первом запуске ----------
+function onboardSlides() {
+  const chart = '<svg viewBox="0 0 300 70" style="display:block;width:100%;margin-top:12px"><path d="M0 55 C40 50 60 30 95 36 S150 58 185 40 S240 12 300 8" fill="none" stroke="#BFEBD8" stroke-width="2.4" stroke-linecap="round"/><circle cx="298" cy="8" r="4" fill="#fff"/></svg>';
+  const row = (title, sub, right) => `<div class="row static"><div class="main"><div class="title">${title}</div><div class="sub">${sub}</div></div>${right}</div>`;
+  const ico = `<span class="ob-ico">${STAR}</span>`;
+  const tool = (t, s) => `<div class="row static">${ico}<div class="main"><div class="title">${t}</div><div class="sub">${s}</div></div></div>`;
+  return [
+    {
+      art: `<div class="ob-card">${ORNAMENT}<div class="k">Стоимость портфеля</div><div class="v">316 323 ₽</div><div class="s">+12 485 ₽ (+4,1%) за всё время</div>${chart}</div>`,
+      title: 'Все ваши халяльные инвестиции в одном месте',
+      text: 'Сукук, акции и криптовалюта. Вы сами вносите покупки, а NAMA следит за ценами и считает результат. Доступа к вашим деньгам у нас нет.'
+    },
+    {
+      art: `<div class="group">${row('Яндекс', 'IT, YDEX', chip('ok'))}${row('Северсталь', 'Металлургия, CHMF', chip('review'))}${row('Bitcoin', 'Криптовалюта, BTC', chip('disputed'))}</div>`,
+      title: 'Каждый актив проверен по шариату',
+      text: 'Смотрим, чем занимается компания, сколько у неё долгов и процентного дохода. Статус всегда виден рядом с ценой, а решения принимает шариатский комитет.'
+    },
+    {
+      art: `<div class="group">${tool('Уроки', 'Коротко и простыми словами')}${tool('Очищение дохода', 'Сколько отдать на садака')}${tool('Калькулятор закята', 'По нисабу золота или серебра')}</div>`,
+      title: 'Учитесь и считайте правильно',
+      text: 'Уроки для тех, кто только начинает, расчёт очищения дивидендов и закята. Начните с добавления первого актива или с уроков.'
+    }
+  ];
+}
+
+async function maybeOnboard() {
+  let done = null;
+  try { done = localStorage.getItem('onboarded'); } catch (e) {}
+  if (!done) done = await storeGet('onboarded');
+  if (!done) showOnboarding();
+}
+
+function showOnboarding() {
+  if (document.querySelector('.ob')) return;
+  const slides = onboardSlides();
+  const el = document.createElement('div');
+  el.className = 'ob';
+  el.setAttribute('role', 'dialog');
+  el.setAttribute('aria-label', 'Знакомство с NAMA');
+  el.innerHTML = `
+    <div class="ob-top"><div class="logo">${STAR}<span>NAMA<em>.</em></span></div><button class="ob-skip" type="button">Пропустить</button></div>
+    <div class="ob-view"><div class="ob-track">${slides.map(sl => `
+      <section class="ob-slide"><div class="ob-art">${sl.art}</div><h2 class="ob-title">${sl.title}</h2><p class="ob-text">${sl.text}</p></section>`).join('')}
+    </div></div>
+    <div class="ob-bottom">
+      <div class="ob-dots">${slides.map(() => '<i></i>').join('')}</div>
+      <button class="btn ob-next" type="button">Далее</button>
+      <button class="ob-alt" type="button" hidden>Сначала посмотреть уроки</button>
+    </div>`;
+  document.body.appendChild(el);
+
+  const track = el.querySelector('.ob-track'), next = el.querySelector('.ob-next'), alt = el.querySelector('.ob-alt');
+  const dots = el.querySelectorAll('.ob-dots i'), secs = el.querySelectorAll('.ob-slide');
+  let i = 0;
+  const show = n => {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    track.style.transform = `translateX(${-i * 100 / slides.length}%)`;
+    dots.forEach((d, k) => d.classList.toggle('on', k === i));
+    secs.forEach((sc, k) => sc.classList.toggle('active', k === i));
+    const last = i === slides.length - 1;
+    next.textContent = last ? 'Добавить первый актив' : 'Далее';
+    alt.hidden = !last;
+  };
+  const finish = then => {
+    try { localStorage.setItem('onboarded', '1'); } catch (e) {}
+    storeSet('onboarded', '1');
+    el.classList.add('closing');
+    setTimeout(() => { el.remove(); if (then) then(); }, reduceMotion() ? 0 : 300);
+  };
+  next.addEventListener('click', () => {
+    if (i < slides.length - 1) { hapticSelect(); show(i + 1); }
+    else finish(() => { tab('stocks'); go('edit', { sec: 'stocks' }); });
+  });
+  alt.addEventListener('click', () => finish(() => { tab('other'); go('lessons'); }));
+  el.querySelector('.ob-skip').addEventListener('click', () => finish());
+
+  // листание пальцем
+  let x0 = null;
+  const view = el.querySelector('.ob-view');
+  view.addEventListener('pointerdown', e => { x0 = e.clientX; });
+  view.addEventListener('pointerup', e => {
+    if (x0 === null) return;
+    const dx = e.clientX - x0; x0 = null;
+    if (Math.abs(dx) > 50) { hapticSelect(); show(i + (dx < 0 ? 1 : -1)); }
+  });
+  show(0);
+}
+
 async function init() {
   applyScheme();
   if (inTelegram) {
@@ -1982,11 +2161,14 @@ async function init() {
     if (atLeast('6.1')) tg.BackButton.onClick(back);
     tg.onEvent('themeChanged', applyScheme);
   }
+  splashHeader();
   await loadAll();
   applyScheme();
+  splashHeader();
   render();
   requestAnimationFrame(() => requestAnimationFrame(() => document.documentElement.classList.remove('no-trans')));
   refreshPrices();
+  hideSplash().then(maybeOnboard);
   setInterval(() => { if (!document.hidden) refreshPrices(); }, 30000);
 }
 init();
