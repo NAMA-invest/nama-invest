@@ -330,6 +330,29 @@
   .hero-empty { font-size: 14px; color: var(--hint); margin-top: 8px; line-height: 1.45; }
   .hero .btn { background: #fff; color: var(--brand); }
 
+  /* ================= ДЕНЬГИ ================= */
+  .cur-bar { display: flex; gap: 2px; height: 8px; margin-top: 16px; border-radius: 4px; overflow: hidden; animation: barIn 1s var(--ease) .15s both; }
+  .cur-bar i { display: block; height: 100%; min-width: 4px; }
+  @keyframes barIn { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+  .cur-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; font-size: 13px; color: var(--hint); }
+  .cur-legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .cur-legend span::before { content: ""; width: 10px; height: 3px; border-radius: 2px; background: var(--k); }
+  .cur-legend b { color: #fff; font-weight: 600; }
+  .cash-ic {
+    width: 38px; height: 38px; border-radius: 12px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg2); color: var(--brand); font-weight: 650; font-size: 15px;
+  }
+  html[data-theme="dark"] .cash-ic { color: var(--gold); }
+  .seg-cur button { padding: 9px 2px; }
+  .callout {
+    background: var(--card); border-radius: 14px; padding: 12px 14px; margin-top: 14px;
+    box-shadow: var(--shadow); border-left: 3px solid var(--gold); font-size: 13.5px; line-height: 1.5;
+  }
+  .callout b { display: block; margin-bottom: 2px; }
+  .conv { font-size: 14px; color: var(--hint); margin-top: 8px; min-height: 20px; font-variant-numeric: tabular-nums; }
+  @media (prefers-reduced-motion: reduce) { .cur-bar { animation: none; } }
+
   .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .tile { background: var(--card); border-radius: 18px; padding: 14px 16px; box-shadow: var(--shadow); border: 0; text-align: left; font: inherit; color: inherit; cursor: pointer; width: 100%; }
   .tile .k { font-size: 12.5px; color: var(--hint); }
@@ -431,7 +454,7 @@
 // =====================================================================
 
 // Номер версии — виден внизу раздела «Другое». Меняется при каждом обновлении.
-const APP_VERSION = '0.19';
+const APP_VERSION = '0.20';
 
 // Шариатский комитет — экран в разделе «Другое».
 // Пока список пуст, в приложении написано, что состав и заключения скоро появятся.
@@ -450,6 +473,9 @@ const COMMITTEE = {
 const SUPPORT_USERNAME = '';
 
 // Статусы: 'ok' — разрешено, 'review' — на перепроверке, 'pending' — ждёт заключения.
+// Пояснение к стейблкоинам: issuer — компания-эмитент
+const STABLE_NOTE = issuer => 'Стейблкоин привязан к доллару 1:1, поэтому цена почти не меняется. Обеспечение — в основном краткосрочные гособлигации США и деньги в банках. Процент по ним получает эмитент (' + issuer + '), держателю монеты он не платится. Часть учёных допускает стейблкоин как цифровую форму денег: обмен на рубли — это обмен валют, он должен проходить сразу, без отсрочки. Другие видят проблему в процентном обеспечении. Точно нельзя: «earn»-продукты, стейкинг и займы под процент — это риба. Окончательное решение — за шариатским комитетом NAMA.';
+
 const CATALOG = {
   sukuk: [
     {
@@ -495,7 +521,10 @@ const CATALOG = {
     { id: 'FIL',  name: 'Filecoin',  ticker: 'FIL',  cg: 'filecoin',                bybit: 'FILUSDT',  sector: 'Децентрализованное хранение файлов', status: 'disputed' },
     { id: 'S',    name: 'Sonic',     ticker: 'S',    cg: 'sonic-3',                 bybit: 'SUSDT',    sector: 'Платформа смарт-контрактов (бывший Fantom)', status: 'disputed' },
     { id: 'GALA', name: 'Gala',      ticker: 'GALA', cg: 'gala',                    bybit: 'GALAUSDT', sector: 'Платформа блокчейн-игр', status: 'disputed',
-      statusNote: 'Скринеры расходятся: HalalScreener считает GALA соответствующей, Sharlife относит к «серой зоне». Gala — платформа блокчейн-игр, поэтому вопросы вызывают содержание игр и спекуляция игровыми NFT. Совет улемов ДУМ РФ (заключение № 4/23) считает покупку криптовалюты для накопления недопустимой. Окончательное решение — за шариатским комитетом NAMA.' }
+      statusNote: 'Скринеры расходятся: HalalScreener считает GALA соответствующей, Sharlife относит к «серой зоне». Gala — платформа блокчейн-игр, поэтому вопросы вызывают содержание игр и спекуляция игровыми NFT. Совет улемов ДУМ РФ (заключение № 4/23) считает покупку криптовалюты для накопления недопустимой. Окончательное решение — за шариатским комитетом NAMA.' },
+    // Стейблкоины. У USDT нет пары на Bybit и Binance (он сам — валюта котировки), поэтому история берётся с CoinGecko.
+    { id: 'USDT', name: 'Tether',    ticker: 'USDT', cg: 'tether',                  sector: 'Стейблкоин, привязан к доллару', status: 'disputed', statusNote: STABLE_NOTE('Tether') },
+    { id: 'USDC', name: 'USD Coin',  ticker: 'USDC', cg: 'usd-coin',                bybit: 'USDCUSDT', sector: 'Стейблкоин, привязан к доллару', status: 'disputed', statusNote: STABLE_NOTE('Circle') }
   ]
 };
 
@@ -591,7 +620,7 @@ const SECTIONS = ['sukuk', 'stocks', 'crypto'];
 const app = document.getElementById('app');
 const $ = s => document.querySelector(s);
 
-let pf = { sukuk: [], stocks: [], crypto: [] };
+let pf = { sukuk: [], stocks: [], crypto: [], cash: [] };   // cash: { i, n, k: 'cash'|'acc', cur: 'USD', amt }
 let stack = [{ name: 'home' }];
 const zk = { basis: 'gold', gram: '', cash: '', inv: '', metal: '', recv: '', debt: '' };
 
@@ -636,7 +665,7 @@ function storeSet(key, val) {
   });
 }
 async function loadAll() {
-  for (const s of SECTIONS) {
+  for (const s of SECTIONS.concat('cash')) {
     const raw = await storeGet('pf_' + s);
     try { const arr = JSON.parse(raw); pf[s] = Array.isArray(arr) ? arr : []; } catch (e) { pf[s] = []; }
   }
@@ -733,20 +762,65 @@ async function loadCryptoPrices() {
   }
 }
 
+// ---------- курсы валют ЦБ (для раздела «Деньги») ----------
+const CASH_CUR = {
+  RUB: { sym: '₽', name: 'Рубли', full: 'Рубль' },
+  USD: { sym: '$', name: 'Доллары', full: 'Доллар США' },
+  EUR: { sym: '€', name: 'Евро', full: 'Евро' },
+  CNY: { sym: '¥', name: 'Юани', full: 'Китайский юань' },
+  AED: { sym: 'AED', name: 'Дирхамы', full: 'Дирхам ОАЭ' }
+};
+const CASH_KIND = { cash: 'Наличные', acc: 'На карте или счёте' };
+let fx = {}, fxPrev = {}, fxAt = 0, fxDate = '';
+try { const v = JSON.parse(localStorage.getItem('fx')); if (v && v.r) { fx = v.r; fxPrev = v.p || {}; fxDate = v.d || ''; } } catch (e) {}
+
+async function loadFx() {
+  if (Date.now() - fxAt < 30 * 60 * 1000) return;
+  const j = await fetchJSON('https://www.cbr-xml-daily.ru/daily_json.js');
+  const r = {}, p = {};
+  for (const code in CASH_CUR) {
+    const v = j.Valute && j.Valute[code];
+    if (!v || !(v.Value > 0)) continue;
+    r[code] = v.Value / (v.Nominal || 1);
+    if (v.Previous > 0) p[code] = v.Previous / (v.Nominal || 1);
+  }
+  if (!Object.keys(r).length) throw new Error('пустой ответ');
+  fx = r; fxPrev = p; fxAt = Date.now(); fxDate = (j.Date || '').slice(0, 10);
+  try { localStorage.setItem('fx', JSON.stringify({ r, p, d: fxDate })); } catch (e) {}
+}
+// Курс валюты в рублях. Если ЦБ недоступен, доллар берём из курса криптобирж.
+function fxRate(code) {
+  if (code === 'RUB') return 1;
+  if (fx[code] > 0) return fx[code];
+  if (code === 'USD' && usdRub) return usdRub;
+  return null;
+}
+const cashSym = code => (CASH_CUR[code] || CASH_CUR.RUB).sym;
+const cashAmt = (v, code) => fmtAmt(v) + ' ' + cashSym(code);
+const cashValue = p => { const r = fxRate(p.cur); return r ? p.amt * r : 0; };
+const cashTotal = () => pf.cash.reduce((s, p) => s + cashValue(p), 0);
+// На сколько рублей изменились деньги за день из-за курса
+function cashDayChange() {
+  let d = 0;
+  for (const p of pf.cash) if (p.cur !== 'RUB' && fx[p.cur] && fxPrev[p.cur]) d += p.amt * (fx[p.cur] - fxPrev[p.cur]);
+  return d;
+}
+
 // id → 'up' | 'down': какие цены изменились при последнем обновлении (для подсветки)
 let flashes = {};
 
 async function refreshPrices() {
   const old = Object.assign({}, prices);
-  const [st, su, cr] = await Promise.allSettled([loadStockPrices(), loadSukukPrices(), loadCryptoPrices()]);
+  const [st, su, cr, fxr] = await Promise.allSettled([loadStockPrices(), loadSukukPrices(), loadCryptoPrices(), loadFx()]);
   priceErr.moex = st.status === 'rejected' && su.status === 'rejected';
   priceErr.cg = cr.status === 'rejected';
+  priceErr.fx = fxr.status === 'rejected';
   pricesAt = new Date();
   flashes = {};
   for (const id in prices) {
     if (old[id] && prices[id] !== old[id]) flashes[id] = prices[id] > old[id] ? 'up' : 'down';
   }
-  if (!scrubbing && ['home', 'sukuk', 'stocks', 'crypto', 'asset'].includes(cur().name)) render(false);
+  if (!scrubbing && ['home', 'sukuk', 'stocks', 'crypto', 'asset', 'cash'].includes(cur().name)) render(false);
   flashes = {};
 }
 const flashCls = id => (flashes[id] ? 'flash-' + flashes[id] : '');
@@ -790,10 +864,12 @@ function secTotals(sec, c = 'rub') {
   for (const p of pf[sec]) { value += p.q * priceOf(p, c); cost += p.q * costOf(p, c); }
   return { value, cost, pl: value - cost };
 }
+// value — вместе с деньгами; cost и pl — только по инвестициям, чтобы деньги не размывали доходность
 function allTotals() {
-  let value = 0, cost = 0;
-  for (const s of SECTIONS) { const t = secTotals(s); value += t.value; cost += t.cost; }
-  return { value, cost, pl: value - cost };
+  let inv = 0, cost = 0;
+  for (const s of SECTIONS) { const t = secTotals(s); inv += t.value; cost += t.cost; }
+  const cash = cashTotal();
+  return { value: inv + cash, inv, cash, cost, pl: inv - cost };
 }
 const findAsset = (sec, id) => CATALOG[sec].find(a => a.id === id);
 
@@ -882,8 +958,119 @@ function incomeTiles() {
   </div>`;
 }
 
+// ---------- деньги: общие куски ----------
+const CASH_COLORS = ['#E2C06A', 'rgba(255,255,255,.88)', 'rgba(255,255,255,.55)', '#9FE0C6', 'rgba(255,255,255,.3)'];
+
+function cashHomeRow(t) {
+  const n = pf.cash.length;
+  const share = t.value ? Math.round(t.cash / t.value * 100) : 0;
+  const d = cashDayChange();
+  return `<button class="row" data-go="cash">
+    <div class="main"><div class="title">Деньги</div><div class="sub">${n ? share + '% портфеля' : 'Наличные и счета'}</div></div>
+    <div class="right"><div>${rub(t.cash)}</div><div class="sub ${tone(d)}">${n && d ? signedRub(d) + ' за день' : ''}</div></div>
+  </button>`;
+}
+
+// По валютам: { code, rub, amt } — от большей доли к меньшей
+function cashByCur() {
+  const m = {};
+  for (const p of pf.cash) {
+    const x = m[p.cur] || (m[p.cur] = { code: p.cur, rub: 0, amt: 0 });
+    x.rub += cashValue(p); x.amt += p.amt;
+  }
+  return Object.values(m).sort((a, b) => b.rub - a.rub);
+}
+
+function cashRow(p, extra = '') {
+  const r = fxRate(p.cur);
+  return `<button class="row${p.i === justAdded ? ' just-added' : ''}${extra}" data-go="cash-edit" data-pid="${esc(p.i)}">
+    <span class="cash-ic" aria-hidden="true">${esc(cashSym(p.cur))}</span>
+    <div class="main"><div class="title">${esc(p.n)}</div><div class="sub">${CASH_KIND[p.k] || ''}</div></div>
+    <div class="right"><div>${cashAmt(p.amt, p.cur)}</div><div class="sub">${p.cur === 'RUB' ? '' : r ? '≈ ' + rub(p.amt * r) : 'курс недоступен'}</div></div>
+  </button>`;
+}
+
+function cashConvText(c) {
+  const v = num(c.amt), r = fxRate(c.cur);
+  if (c.cur === 'RUB' || !(v > 0)) return c.cur === 'RUB' ? '' : (r ? '1 ' + cashSym(c.cur) + ' = ' + rub(r) + ' по курсу ЦБ' : '');
+  return r ? '≈ ' + rub(v * r) + ' по курсу ЦБ' : 'Курс сейчас недоступен';
+}
+
+const cashDefaultName =(k, code) => (k === 'cash' ? 'Наличные' : 'Счёт') + ', ' + (CASH_CUR[code] || CASH_CUR.RUB).name.toLowerCase();
+
 // ---------- экраны ----------
 const SCREENS = {
+  cash() {
+    const total = cashTotal(), d = cashDayChange();
+    const hasForeign = pf.cash.some(p => p.cur !== 'RUB');
+    const by = cashByCur();
+    let rows = pf.cash.map(p => cashRow(p));
+    if (justRemoved && justRemoved.sec === 'cash') rows.splice(Math.min(justRemoved.index, rows.length), 0, cashRow(justRemoved.p, ' removing'));
+    const bar = total > 0 && by.length ? `
+      <div class="cur-bar">${by.map((x, i) => `<i style="flex:${Math.max(x.rub, total * 0.02)};background:${CASH_COLORS[i % CASH_COLORS.length]}"></i>`).join('')}</div>
+      <div class="cur-legend">${by.map((x, i) => `<span style="--k:${CASH_COLORS[i % CASH_COLORS.length]}">${esc(CASH_CUR[x.code].name)} <b>${Math.round(x.rub / total * 100)}%</b></span>`).join('')}</div>` : '';
+    const rates = ['USD', 'EUR', 'CNY', 'AED'].map(code => {
+      const r = fx[code] || fxRate(code), pr = fxPrev[code];
+      const ch = r && pr ? (r - pr) / pr * 100 : null;
+      return `<div class="row static">
+        <span class="cash-ic" aria-hidden="true">${esc(cashSym(code))}</span>
+        <div class="main"><div class="title">${CASH_CUR[code].full}</div></div>
+        <div class="right"><div>${r ? rub(r) : '—'}</div><div class="sub ${ch != null ? tone(ch) : ''}">${ch != null ? sign(ch) + nf.format(Math.abs(round2(ch))) + '%' : ''}</div></div>
+      </div>`;
+    }).join('');
+    return `
+      ${backLink()}
+      <h1 style="margin-bottom:14px">Деньги</h1>
+      ${hero(`
+        <div class="hero-top"><span>Наличные и счета</span><span class="gold">по курсу ЦБ</span></div>
+        <div class="big mid num" id="sec-total">${rub(total)}</div>
+        <div class="sub-line num">${!pf.cash.length
+          ? 'Добавьте наличные или деньги на карте: они войдут в стоимость портфеля и в расчёт закята.'
+          : hasForeign
+            ? (d ? `<span class="${tone(d)}">${signedRub(d)}</span> за день из-за курса` : 'Курс за день не изменился')
+            : 'Всё в рублях: курс на сумму не влияет'}</div>
+        ${bar}
+      `)}
+      <h2>Мои деньги</h2>
+      <div class="group">${rows.length ? rows.join('') : '<div class="empty">Здесь появятся наличные и деньги на картах.</div>'}</div>
+      <button class="btn" data-go="cash-edit">Добавить деньги</button>
+      <h2>Курсы ЦБ${fxDate ? ' на ' + fmtDay(fxDate) : ''}</h2>
+      <div class="group">${rates}</div>
+      <div class="callout"><b>Проценты на остаток — это риба</b>Если банк начисляет проценты на карту или вклад, их лучше отключить. Уже полученные проценты отдают на благие дела, не рассчитывая на награду.</div>
+      <p class="note">Валюта пересчитывается по официальному курсу ЦБ. Деньги входят в стоимость портфеля, но не влияют на его доходность.${priceErr.fx ? ' Курсы ЦБ сейчас недоступны, показаны последние сохранённые.' : ''}</p>
+      ${disclaimer}`;
+  },
+
+  'cash-edit'(c) {
+    const p = c.pid ? pf.cash.find(x => x.i === c.pid) : null;
+    if (c.k == null) {   // первый показ формы: берём значения позиции или значения по умолчанию
+      c.k = p ? p.k : 'cash'; c.cur = p ? p.cur : 'RUB';
+      c.n = p ? p.n : ''; c.amt = p ? String(p.amt) : '';
+    }
+    const codes = Object.keys(CASH_CUR);
+    return `
+      ${backLink()}
+      <h1>${p ? 'Изменить' : 'Добавить деньги'}</h1>
+      <p class="hint">Деньги</p>
+      <label>Где хранятся</label>
+      <div class="seg" style="--i:${c.k === 'acc' ? 1 : 0}">
+        <button data-act="cash-kind" data-v="cash" class="${c.k === 'cash' ? 'on' : ''}">Наличные</button>
+        <button data-act="cash-kind" data-v="acc" class="${c.k === 'acc' ? 'on' : ''}">Карта или счёт</button>
+      </div>
+      <label>Валюта</label>
+      <div class="seg seg-cur" style="--n:${codes.length};--i:${codes.indexOf(c.cur)}">
+        ${codes.map(code => `<button data-act="cash-cur" data-v="${code}" class="${c.cur === code ? 'on' : ''}" aria-label="${CASH_CUR[code].name}">${esc(CASH_CUR[code].sym)}</button>`).join('')}
+      </div>
+      <label for="f-cn">Название</label>
+      <input id="f-cn" type="text" maxlength="40" value="${esc(c.n)}" placeholder="${esc(c.k === 'cash' ? 'Например, доллары дома' : 'Например, карта Сбера')}">
+      <label for="f-ca">Сумма, ${esc(cashSym(c.cur))}</label>
+      <input id="f-ca" type="text" inputmode="decimal" value="${esc(c.amt)}" placeholder="0">
+      <div class="conv" id="f-conv">${cashConvText(c)}</div>
+      ${c.k === 'acc' ? '<div class="callout"><b>Есть проценты на остаток?</b>Это риба. Лучше отключить их в банке, а уже начисленные отдать на благие дела.</div>' : ''}
+      <button class="btn" data-act="cash-save">Сохранить</button>
+      ${p ? '<button class="btn danger" data-act="cash-delete">Удалить</button>' : ''}`;
+  },
+
   home() {
     const t = allTotals();
     const hasAny = SECTIONS.some(sec => pf[sec].length);
@@ -895,15 +1082,15 @@ const SCREENS = {
         ${pf[sec].length ? `<span class="spark" data-chart="spark" data-sec="${sec}" aria-hidden="true"></span>` : ''}
         <div class="right"><div>${rub(st.value)}</div><div class="sub ${tone(st.pl)}">${pf[sec].length ? signedRub(st.pl) : ''}</div></div>
       </button>`;
-    }).join('');
+    }).join('') + cashHomeRow(t);
     return `
       <div class="brandbar"><div class="logo">${STAR}<span>NAMA<em>.</em></span></div>${themeBtn()}</div>
       ${hero(`
         <div class="hero-top"><span>Стоимость портфеля</span><span class="gold">${assetCountLabel()}</span></div>
         <div class="big num" id="total">${rub(t.value)}</div>
         <div class="sub-line num">${hasAny
-          ? `<span class="${tone(t.pl)}">${signedRub(t.pl)}${t.cost ? ' (' + pctOf(t.pl, t.cost) + ')' : ''}</span> за всё время`
-          : 'Откройте раздел внизу и добавьте свой первый актив.'}</div>
+          ? `<span class="${tone(t.pl)}">${signedRub(t.pl)}${t.cost ? ' (' + pctOf(t.pl, t.cost) + ')' : ''}</span> за всё время${t.cash ? '<br>Из них деньги: ' + rub(t.cash) : ''}`
+          : t.cash ? 'Пока только деньги. Откройте раздел внизу и добавьте первый актив.' : 'Откройте раздел внизу и добавьте свой первый актив.'}</div>
         ${hasAny ? `<div class="chart" data-chart="portfolio" data-h="96"></div>${periodSeg()}` : ''}
       `)}
       <h2>Разделы</h2>
@@ -1174,8 +1361,9 @@ const SCREENS = {
       ${field('gram', `Цена 1 грамма ${zk.basis === 'gold' ? 'золота' : 'серебра'}, ₽`, 'Актуальную цену можно посмотреть на сайте ЦБ: учётные цены на драгоценные металлы.')}
       <h2>Ваше имущество</h2>
       ${field('cash', 'Наличные и деньги на счетах, ₽')}
+      ${pf.cash.length ? `<button class="btn ghost" data-act="zk-fill-cash">Взять из раздела «Деньги»: ${rub(cashTotal())}</button>` : ''}
       ${field('inv', 'Инвестиции, ₽')}
-      <button class="btn ghost" data-act="zk-fill">Взять из портфеля: ${rub(allTotals().value)}</button>
+      <button class="btn ghost" data-act="zk-fill">Взять из портфеля: ${rub(allTotals().inv)}</button>
       ${field('metal', 'Золото и серебро, ₽', 'Стоимость украшений и слитков.')}
       ${field('recv', 'Долги вам, ₽', 'Только те, которые вам реально вернут.')}
       <h2>Вычеты</h2>
@@ -1311,6 +1499,60 @@ function showAddedPopup({ title, q, unit, name, sub }) {
   });
 }
 
+// ---------- деньги: сохранение и удаление ----------
+async function saveCash() {
+  const c = cur();
+  c.n = $('#f-cn').value.trim(); c.amt = $('#f-ca').value;
+  const amt = num(c.amt);
+  if (!(amt > 0)) return alertMsg('Укажите сумму больше нуля.');
+  const data = { n: c.n || cashDefaultName(c.k, c.cur), k: c.k, cur: c.cur, amt: round2(amt) };
+  const before = JSON.stringify(pf.cash);
+  const fromTotal = cashTotal();
+  let markId;
+  if (c.pid) {
+    const p = pf.cash.find(x => x.i === c.pid);
+    if (p) Object.assign(p, data);
+    markId = c.pid;
+  } else {
+    markId = Date.now().toString(36);
+    pf.cash.push(Object.assign({ i: markId }, data));
+  }
+  if (!(await persist('cash'))) { pf.cash = JSON.parse(before); return; }
+  const r = fxRate(data.cur);
+  await showAddedPopup({
+    title: c.pid ? 'Сумма обновлена' : 'Деньги добавлены',
+    q: data.amt, unit: cashSym(data.cur), name: data.n,
+    sub: esc(CASH_KIND[data.k]) + (data.cur !== 'RUB' && r ? '<br>≈ ' + esc(rub(data.amt * r)) + ' по курсу ЦБ' : '')
+  });
+  justAdded = markId;
+  countFrom = { sec: 'cash', from: fromTotal };
+  backToCash();
+}
+
+// Возврат на экран «Деньги» после сохранения или удаления
+function backToCash() {
+  stack.pop();
+  if (cur().name !== 'cash') stack.push({ name: 'cash' });
+  render(true, 'pop');
+}
+
+function deleteCash() {
+  const c = cur();
+  confirmMsg('Удалить эту запись?', async ok => {
+    if (!ok) return;
+    const before = pf.cash, fromTotal = cashTotal();
+    const index = pf.cash.findIndex(x => x.i === c.pid);
+    const removed = pf.cash[index];
+    pf.cash = pf.cash.filter(x => x.i !== c.pid);
+    if (await persist('cash')) {
+      haptic('success');
+      justRemoved = removed ? { sec: 'cash', p: removed, index } : null;
+      countFrom = { sec: 'cash', from: fromTotal };
+      backToCash();
+    } else pf.cash = before;
+  });
+}
+
 function deletePosition() {
   const c = cur(), sec = c.sec;
   confirmMsg('Удалить позицию?', async ok => {
@@ -1373,7 +1615,22 @@ const ACTIONS = {
       storeSet('cur_crypto', cryptoCur);
     });
   },
-  'zk-fill': () => { zk.inv = String(round2(allTotals().value)); render(false); }
+  'zk-fill': () => { zk.inv = String(round2(allTotals().inv)); render(false); },
+  'zk-fill-cash': () => { zk.cash = String(round2(cashTotal())); render(false); },
+  'cash-save': saveCash,
+  'cash-delete': deleteCash,
+  'cash-kind': el => {
+    const c = cur();
+    if (c.k === el.dataset.v) return;
+    c.n = $('#f-cn').value; c.amt = $('#f-ca').value;
+    slideSeg(el, el.dataset.v === 'acc' ? 1 : 0, () => { c.k = el.dataset.v; render(false); });
+  },
+  'cash-cur': el => {
+    const c = cur();
+    if (c.cur === el.dataset.v) return;
+    c.n = $('#f-cn').value; c.amt = $('#f-ca').value;
+    slideSeg(el, Object.keys(CASH_CUR).indexOf(el.dataset.v), () => { c.cur = el.dataset.v; render(false); });
+  }
 };
 
 document.addEventListener('click', e => {
@@ -1392,6 +1649,11 @@ document.addEventListener('click', e => {
 document.addEventListener('input', e => {
   const key = e.target.dataset && e.target.dataset.zk;
   if (key) { zk[key] = e.target.value; const r = $('#zk-result'); if (r) r.innerHTML = zakatResult(); }
+  if (e.target.id === 'f-ca' || e.target.id === 'f-cn') {
+    const c = cur();
+    if (e.target.id === 'f-ca') { c.amt = e.target.value; const el = $('#f-conv'); if (el) el.textContent = cashConvText(c); }
+    else c.n = e.target.value;
+  }
 });
 
 function updatePriceField() {
@@ -1435,7 +1697,8 @@ function render(resetScroll = true, anim = null) {
   if (c.name === 'home' && !document.getElementById('splash')) countTotal();
   if (countFrom && countFrom.sec === c.name) {
     const el = $('#sec-total'), cu = dispCur(c.name);
-    if (el) animateNumber(el, countFrom.from, secTotals(c.name, cu).value, v => money(v, cu), 900, 300);
+    const to = c.name === 'cash' ? cashTotal() : secTotals(c.name, cu).value;
+    if (el) animateNumber(el, countFrom.from, to, v => money(v, cu), 900, 300);
   }
   countFrom = null;
   if (justRemoved) {
@@ -1803,7 +2066,8 @@ function buildPortfolio(period, cu) {
     }
     bySec[sec] = { t, v };
   }
-  return { total: { t, v: t.map((_, i) => SECTIONS.reduce((sum, sec) => sum + bySec[sec].v[i], 0)) }, bySec };
+  const cash = cashTotal();   // деньги в истории считаем по сегодняшнему курсу
+  return { total: { t, v: t.map((_, i) => cash + SECTIONS.reduce((sum, sec) => sum + bySec[sec].v[i], 0)) }, bySec };
 }
 
 function assetSeries(sec, a, period, cu) {
