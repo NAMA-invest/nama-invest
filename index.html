@@ -371,6 +371,18 @@
   .pi-bar i { display: block; height: 100%; border-radius: 3px; background: #E2C06A; transition: width .6s var(--ease); }
   .pi-big-sub { font-size: 14px; color: var(--hint); font-weight: 400; letter-spacing: 0; }
   #pi-hero .big.mid { font-size: 28px; }
+  .upd {
+    position: fixed; left: 50%; transform: translateX(-50%); z-index: 50;
+    bottom: calc(78px + max(env(safe-area-inset-bottom), var(--bottom-inset, 0px)));
+    display: flex; align-items: center; gap: 10px; padding: 10px 14px; border: 0; border-radius: 14px; cursor: pointer;
+    background: var(--brand); color: #fff; font: inherit; font-size: 14px; box-shadow: 0 6px 20px rgba(0, 0, 0, .18);
+    animation: updIn .4s var(--ease) both; white-space: nowrap;
+  }
+  .upd svg { width: 16px; height: 16px; fill: none; stroke: #E2C06A; stroke-width: 1.8; }
+  .upd b { color: #E2C06A; font-weight: 600; }
+  @keyframes updIn { from { opacity: 0; transform: translate(-50%, 12px); } }
+  .pi-yield { font-size: 13px; color: var(--hint); margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); line-height: 1.45; }
+  .pi-tip { color: #fff; margin-top: 6px; padding-left: 10px; border-left: 2px solid #E2C06A; }
   details.pi-more { margin-top: 18px; }
   details.pi-more summary { cursor: pointer; color: var(--hint); font-size: 14px; list-style: none; padding: 4px 2px; }
   details.pi-more summary::-webkit-details-marker { display: none; }
@@ -482,7 +494,7 @@
 // =====================================================================
 
 // Номер версии — виден внизу раздела «Другое». Меняется при каждом обновлении.
-const APP_VERSION = '0.21';
+const APP_VERSION = '0.22';
 
 // Шариатский комитет — экран в разделе «Другое».
 // Пока список пуст, в приложении написано, что состав и заключения скоро появятся.
@@ -701,7 +713,13 @@ async function loadAll() {
   if (c === 'rub' || c === 'usd') cryptoCur = c;
   try { const v = JSON.parse(await storeGet('purify_pct')); if (v && typeof v === 'object') purifyPct = v; } catch (e) {}
   try { const v = JSON.parse(await storeGet('purified')); if (v && typeof v === 'object') purified = v; } catch (e) {}
-  try { const v = JSON.parse(await storeGet('passive')); if (v && typeof v === 'object') for (const k in pi) if (k in v) pi[k] = v[k]; } catch (e) {}
+  try {
+    const v = JSON.parse(await storeGet('passive'));
+    if (v && typeof v === 'object') {
+      if (v.v !== pi.v) { delete v.yld; delete v.grow; delete v.infl; }   // старые допущения 0.21 заменяем данными по рынку РФ
+      for (const k in pi) if (k in v && k !== 'v') pi[k] = v[k];
+    }
+  } catch (e) {}
   const t = await storeGet('theme');
   if (t === 'light' || t === 'dark') {
     themePref = t;
@@ -1030,7 +1048,11 @@ const cashDefaultName =(k, code) => (k === 'cash' ? 'Наличные' : 'Счё
 // ---------- калькулятор пассивного дохода ----------
 // Все суммы считаем в сегодняшних деньгах: рост капитала берём за вычетом инфляции.
 const TAX = 0.13;
-const pi = { goal: '30000', mode: 'when', contrib: '30000', date: '', start: null, yld: '8', grow: '12', infl: '7' };
+// Рост и инфляция по умолчанию — история рынка РФ за 2004–2025 годы: индекс Мосбиржи полной доходности (MCFTR)
+// рос в среднем на 13,1% в год, после налога 13% на дивиденды — около 12,5%; инфляция — в среднем 8,2% в год.
+// yld: null — считать выплаты по структуре портфеля.
+const PI_DEF = { yld: 7, grow: '12,5', infl: '8' };   // 7% — средняя дивидендная доходность рынка, если по портфелю посчитать нельзя
+const pi = { v: 2, goal: '30000', mode: 'when', contrib: '30000', date: '', start: null, yld: null, grow: PI_DEF.grow, infl: PI_DEF.infl };
 let piDraw = false;
 const MONTH_IN = ['январе', 'феврале', 'марте', 'апреле', 'мае', 'июне', 'июле', 'августе', 'сентябре', 'октябре', 'ноябре', 'декабре'];
 const MONTH_TO = ['январю', 'февралю', 'марту', 'апрелю', 'маю', 'июню', 'июлю', 'августу', 'сентябрю', 'октябрю', 'ноябрю', 'декабрю'];
@@ -1045,14 +1067,54 @@ function fmtSpan(n) {
 }
 const fmtMln = v => (v >= 1e6 ? nf.format(Math.round(v / 1e4) / 100) + ' млн ₽' : rub(Math.round(v)));
 
-function piCalc() {
+// Доходность выплат по каждой бумаге: дивиденды за 12 месяцев или купон в пересчёте на год — к текущей цене
+function assetYield(sec, a) {
+  const c = incomeCache[(sec === 'stocks' ? 'div|' : 'cpn|') + a.id];
+  const price = livePrice(a.id);
+  if (!c || c.err || !price) return null;
+  const today = isoDay(new Date()), yearAgo = isoDay(new Date(Date.now() - 365 * 86400000));
+  if (sec === 'stocks') {
+    const sum = c.rows.filter(r => r.date >= yearAgo && r.date < today && r.value).reduce((s, r) => s + r.value, 0);
+    return sum / price;
+  }
+  const rows = c.rows.filter(r => r.date).slice().sort((x, y) => (x.date < y.date ? -1 : 1));
+  const known = rows.filter(r => r.value);
+  if (!known.length || rows.length < 2) return null;
+  const last = known[known.length - 1];
+  const gaps = [];
+  for (let i = 1; i < rows.length; i++) gaps.push((Date.parse(rows[i].date) - Date.parse(rows[i - 1].date)) / 86400000);
+  const gap = gaps.sort((x, y) => x - y)[gaps.length >> 1];          // типичный период между купонами
+  return gap > 0 ? last.value * 365 / gap / price : null;
+}
+
+// Выплаты портфеля в % годовых: now — как есть (крипта и деньги дают 0), best — если всё держать в бумагах с выплатами
+function portfolioYield() {
+  let payV = 0, payI = 0, other = 0, loading = false;
+  for (const sec of ['stocks', 'sukuk']) for (const p of pf[sec]) {
+    const a = p.a && findAsset(sec, p.a);
+    if (!a) continue;                                   // внесённые вручную: доходность неизвестна
+    const y = assetYield(sec, a);
+    if (y == null) { if (!incomeCache[(sec === 'stocks' ? 'div|' : 'cpn|') + a.id]) loading = true; continue; }
+    const v = p.q * priceOf(p);
+    payV += v; payI += v * y;
+  }
+  for (const p of pf.crypto) other += p.q * priceOf(p);
+  other += cashTotal();
+  if (!payV) return { loading, none: true };
+  return { now: payI / (payV + other), best: payI / payV, other, loading };
+}
+
+function piCalc(yOverride) {
   const val = (s, d) => { const n = num(s); return isNaN(n) ? d : n; };
   const goal = Math.max(0, val(pi.goal, 0));
-  const yld = val(pi.yld, 8) / 100, grow = val(pi.grow, 12) / 100, infl = val(pi.infl, 7) / 100;
+  const py = portfolioYield();
+  const autoY = py.none ? PI_DEF.yld / 100 : py.now;
+  const yld = yOverride != null ? yOverride : pi.yld == null ? autoY : val(pi.yld, PI_DEF.yld) / 100;
+  const grow = val(pi.grow, 12.5) / 100, infl = val(pi.infl, 8) / 100;
   const c0 = Math.max(0, val(piStart(), 0));
   const need = yld > 0 ? goal / (1 - TAX) * 12 / yld : Infinity;      // капитал, который платит goal в месяц на руки
   const rm = Math.pow((1 + grow) / (1 + infl), 1 / 12) - 1;           // реальный рост в месяц
-  const r = { goal, yld, grow, infl, c0, need, rm, ok: goal > 0 && isFinite(need) };
+  const r = { goal, yld, grow, infl, c0, need, rm, py, ok: goal > 0 && isFinite(need) };
   if (!r.ok) return r;
   if (pi.mode === 'when') {
     const p = Math.max(0, val(pi.contrib, 0));
@@ -1123,7 +1185,29 @@ function piHero() {
       <div class="hero-top" style="min-height:0"><span>Уже есть: ${fmtMln(r.c0)}</span><span class="gold">${pct >= 1 || !r.c0 ? Math.floor(pct) : '<1'}%</span></div>
       <div class="pi-bar"><i style="width:${pct.toFixed(1)}%"></i></div>
       ${inc ? `<div class="sub-line" style="margin-top:8px;font-size:13px">За последний год портфель принёс ≈ ${rub(Math.round(inc))} в месяц на руки</div>` : ''}
-    </div>`;
+    </div>
+    ${piYieldBlock(r)}`;
+}
+
+const pct1 = v => nf.format(Math.round(v * 1000) / 10) + '%';
+// Откуда взялась доходность выплат и что даст перекладка крипты и денег в бумаги
+function piYieldBlock(r) {
+  const py = r.py;
+  let src;
+  if (pi.yld != null) src = `Выплаты ${pct1(r.yld)} в год — ваше значение.`;
+  else if (py.none) src = py.loading ? 'Считаем выплаты по вашему портфелю…' : `В портфеле нет бумаг с выплатами, поэтому берём среднюю доходность рынка РФ: ${pct1(r.yld)} в год.`;
+  else src = `Выплаты вашего портфеля: ${pct1(py.now)} в год${py.other > 0 ? ' — крипта и деньги выплат не дают' : ''}.`;
+  let tip = '';
+  if (pi.yld == null && !py.none && py.other > 0 && py.best > py.now * 1.02) {
+    const alt = piCalc(py.best);
+    if (pi.mode === 'when' && r.months != null && alt.months != null && r.months - alt.months >= 1)
+      tip = `Если переложить их в бумаги с выплатами, будет ${pct1(py.best)}, и цель наступит на ${fmtSpan(r.months - alt.months)} раньше.`;
+    else if (pi.mode === 'when' && r.months == null && alt.months != null)
+      tip = `Если переложить их в бумаги с выплатами, будет ${pct1(py.best)}, и цель наступит через ${fmtSpan(alt.months)}.`;
+    else if (pi.mode === 'how' && !r.enough && r.contrib - alt.contrib >= 100)
+      tip = `Если переложить их в бумаги с выплатами, будет ${pct1(py.best)}, и взнос станет меньше на ${rub(Math.round((r.contrib - alt.contrib) / 100) * 100)} в месяц.`;
+  }
+  return `<div class="pi-yield">${src}${tip ? `<div class="pi-tip">${tip}</div>` : ''}</div>`;
 }
 
 function drawPiChart() {
@@ -1170,7 +1254,8 @@ const SCREENS = {
       <label for="pi-${key}">${title}</label>
       <input id="pi-${key}" data-pi="${key}" type="text" inputmode="decimal" value="${esc(key === 'start' ? piStart() : pi[key])}" placeholder="0" ${extra}>
       ${hint ? `<div class="field-hint">${hint}</div>` : ''}`;
-    const s3 = (key, title) => `<div><label for="pi-${key}">${title}</label><input id="pi-${key}" data-pi="${key}" type="text" inputmode="decimal" value="${esc(pi[key])}"></div>`;
+    const autoY = () => { const r = piCalc(); return String(Math.round(r.yld * 1000) / 10).replace('.', ','); };
+    const s3 = (key, title) => `<div><label for="pi-${key}">${title}</label><input id="pi-${key}" data-pi="${key}" type="text" inputmode="decimal" value="${esc(key === 'yld' && pi.yld == null ? autoY() : pi[key])}"></div>`;
     return `
       ${backLink()}
       <h1 style="margin-bottom:14px">Пассивный доход</h1>
@@ -1190,7 +1275,10 @@ const SCREENS = {
       <details class="pi-more">
         <summary>Допущения расчёта</summary>
         <div class="pi-3">${s3('yld', 'Выплаты, % в год')}${s3('grow', 'Рост капитала, %')}${s3('infl', 'Инфляция, %')}</div>
-        <div class="field-hint" style="margin-top:10px">Выплаты — дивиденды и купоны сукука от стоимости капитала. Рост — выплаты, которые вы реинвестируете, плюс рост цен на бумаги. Реинвестированные выплаты сами приносят выплаты — это и есть сложный процент, он уже учтён. Ставка сукука сейчас высокая из‑за ставки ЦБ, поэтому по умолчанию берём осторожные 8%.</div>
+        ${pi.yld != null || pi.grow !== PI_DEF.grow || pi.infl !== PI_DEF.infl ? '<button class="btn ghost" data-act="pi-reset">Вернуть значения по умолчанию</button>' : ''}
+        <div class="field-hint" style="margin-top:10px"><b>Выплаты</b> считаем по вашему портфелю: дивиденды каждой акции за последние 12 месяцев и купон сукука в пересчёте на год — к текущей цене, с учётом долей. У крипты и денег выплат нет. Если бумаг с выплатами нет, берём 7% — примерно столько платил рынок РФ в последние годы.</div>
+        <div class="field-hint" style="margin-top:8px"><b>Рост капитала</b> — история рынка РФ: индекс Мосбиржи полной доходности с 2004 по 2025 год рос в среднем на 13,1% в год вместе с дивидендами, после налога 13% — около 12,5%. Реинвестированные выплаты сами приносят выплаты — это и есть сложный процент, он уже учтён.</div>
+        <div class="field-hint" style="margin-top:8px"><b>Инфляция</b> — в среднем 8,2% в год за тот же период по Росстату. Реальный рост капитала выходит около 4% в год. Шариатский индекс Мосбиржи существует недавно, поэтому для истории берём весь рынок.</div>
       </details>
       <div class="callout"><b>Капитал не тратится</b>Вы живёте только на дивиденды и купоны, а сами бумаги остаются у вас и продолжают расти. Выплаты приносят акции и сукук. Крипта и деньги на счетах выплат не дают: для дохода их нужно переложить в бумаги.</div>
       <p class="note">Это прогноз, а не обещание: дивиденды компании могут сократить, цены бумаг меняются. Налог 13% уже учтён.</p>
@@ -1820,6 +1908,7 @@ const ACTIONS = {
     slideSeg(el, el.dataset.v === 'how' ? 1 : 0, () => { pi.mode = el.dataset.v; piDraw = true; render(false); piSave(); });
   },
   'pi-start': () => { pi.start = null; piDraw = true; render(false); piSave(); },
+  'pi-reset': () => { pi.yld = null; pi.grow = PI_DEF.grow; pi.infl = PI_DEF.infl; piDraw = true; render(false); piSave(); },
   'cash-save': saveCash,
   'cash-delete': deleteCash,
   'cash-kind': el => {
@@ -2685,8 +2774,53 @@ async function init() {
   render();
   requestAnimationFrame(() => requestAnimationFrame(() => document.documentElement.classList.remove('no-trans')));
   refreshPrices();
+  // Пока видна заставка, проверяем, нет ли на GitHub версии новее: если есть — сразу загружаем её
+  const upd = findUpdate();
+  const v = await Promise.race([upd, sleep(1500).then(() => null)]);
+  if (v && reloadTo(v)) return;
   hideSplash().then(maybeOnboard);
+  if (!v) upd.then(late => { if (late) showUpdateBar(late); });
+  else showUpdateBar(v);
   setInterval(() => { if (!document.hidden) refreshPrices(); }, 30000);
+  setInterval(() => { if (!document.hidden) findUpdate().then(n => { if (n) showUpdateBar(n); }); }, 20 * 60 * 1000);
+}
+
+// ---------- обновления ----------
+// Сравнение версий по частям: 0.3 < 0.22 < 0.23 < 1.0
+function newerThan(a, b) {
+  const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number);
+  for (let i = 0; i < Math.max(x.length, y.length); i++) {
+    const d = (x[i] || 0) - (y[i] || 0);
+    if (d) return d > 0;
+  }
+  return false;
+}
+async function findUpdate() {
+  if (!/^https?:/.test(location.protocol)) return null;
+  try {
+    const r = await fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) return null;
+    const m = (await r.text()).match(/APP_VERSION\s*=\s*'([\d.]+)'/);
+    return m && newerThan(m[1], APP_VERSION) ? m[1] : null;
+  } catch (e) { return null; }
+}
+// Перезагрузка на новую версию. Адрес с ?v= обходит старую копию в памяти Telegram и GitHub.
+// Один раз за сессию на каждую версию, чтобы не уйти в бесконечную перезагрузку.
+function reloadTo(v, force) {
+  let tried = null;
+  try { tried = sessionStorage.getItem('upd_try'); } catch (e) {}
+  if (tried === v && !force) return false;
+  try { sessionStorage.setItem('upd_try', v); } catch (e) {}
+  location.replace(location.pathname + '?v=' + v + location.hash);
+  return true;
+}
+function showUpdateBar(v) {
+  if (document.querySelector('.upd')) return;
+  const el = document.createElement('button');
+  el.className = 'upd';
+  el.innerHTML = `${STAR}<span>Вышла версия ${esc(v)}</span><b>Обновить</b>`;
+  el.addEventListener('click', () => reloadTo(v, true));
+  document.body.appendChild(el);
 }
 init();
 </script>
