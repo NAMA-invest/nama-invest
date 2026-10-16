@@ -353,6 +353,34 @@
   .conv { font-size: 14px; color: var(--hint); margin-top: 8px; min-height: 20px; font-variant-numeric: tabular-nums; }
   @media (prefers-reduced-motion: reduce) { .cur-bar { animation: none; } }
 
+  /* ================= ПАССИВНЫЙ ДОХОД ================= */
+  .pi-chart { height: 132px; margin: 14px 0 4px; position: relative; }
+  .pi-chart svg { width: 100%; height: 100%; display: block; overflow: visible; }
+  .pi-chart .ln { fill: none; stroke: #fff; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .pi-chart .ar { fill: rgba(255, 255, 255, .1); stroke: none; }
+  .pi-chart .ln.own { stroke: rgba(255, 255, 255, .45); stroke-width: 1.5; }
+  .pi-chart .goal { stroke: #E2C06A; stroke-width: 1; }
+  .pi-chart .gl { fill: #E2C06A; font-size: 11px; font-family: inherit; }
+  .pi-chart .ax { fill: rgba(255, 255, 255, .6); font-size: 11px; font-family: inherit; }
+  .pi-chart .dot { fill: #E2C06A; stroke: var(--brand); stroke-width: 2; }
+  .pi-chart.draw .ln { animation: piLine 1.1s var(--ease) both; }
+  .pi-chart.draw .ar, .pi-chart.draw .dot, .pi-chart.draw .dl { animation: piFade .5s ease .8s both; }
+  @keyframes piLine { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+  @keyframes piFade { from { opacity: 0; } }
+  .pi-bar { height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .12); margin-top: 8px; overflow: hidden; }
+  .pi-bar i { display: block; height: 100%; border-radius: 3px; background: #E2C06A; transition: width .6s var(--ease); }
+  .pi-big-sub { font-size: 14px; color: var(--hint); font-weight: 400; letter-spacing: 0; }
+  #pi-hero .big.mid { font-size: 28px; }
+  details.pi-more { margin-top: 18px; }
+  details.pi-more summary { cursor: pointer; color: var(--hint); font-size: 14px; list-style: none; padding: 4px 2px; }
+  details.pi-more summary::-webkit-details-marker { display: none; }
+  details.pi-more summary::after { content: " ›"; display: inline-block; transition: transform .2s ease; }
+  details.pi-more[open] summary::after { transform: rotate(90deg); }
+  .pi-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .pi-3 label { margin-top: 10px; font-size: 12.5px; }
+  input[type="month"] { min-height: 48px; text-align: left; }
+  @media (prefers-reduced-motion: reduce) { .pi-chart.draw .ln, .pi-chart.draw .ar, .pi-chart.draw .dot, .pi-chart.draw .dl { animation: none; } }
+
   .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .tile { background: var(--card); border-radius: 18px; padding: 14px 16px; box-shadow: var(--shadow); border: 0; text-align: left; font: inherit; color: inherit; cursor: pointer; width: 100%; }
   .tile .k { font-size: 12.5px; color: var(--hint); }
@@ -454,7 +482,7 @@
 // =====================================================================
 
 // Номер версии — виден внизу раздела «Другое». Меняется при каждом обновлении.
-const APP_VERSION = '0.20';
+const APP_VERSION = '0.21';
 
 // Шариатский комитет — экран в разделе «Другое».
 // Пока список пуст, в приложении написано, что состав и заключения скоро появятся.
@@ -673,6 +701,7 @@ async function loadAll() {
   if (c === 'rub' || c === 'usd') cryptoCur = c;
   try { const v = JSON.parse(await storeGet('purify_pct')); if (v && typeof v === 'object') purifyPct = v; } catch (e) {}
   try { const v = JSON.parse(await storeGet('purified')); if (v && typeof v === 'object') purified = v; } catch (e) {}
+  try { const v = JSON.parse(await storeGet('passive')); if (v && typeof v === 'object') for (const k in pi) if (k in v) pi[k] = v[k]; } catch (e) {}
   const t = await storeGet('theme');
   if (t === 'light' || t === 'dark') {
     themePref = t;
@@ -998,8 +1027,176 @@ function cashConvText(c) {
 
 const cashDefaultName =(k, code) => (k === 'cash' ? 'Наличные' : 'Счёт') + ', ' + (CASH_CUR[code] || CASH_CUR.RUB).name.toLowerCase();
 
+// ---------- калькулятор пассивного дохода ----------
+// Все суммы считаем в сегодняшних деньгах: рост капитала берём за вычетом инфляции.
+const TAX = 0.13;
+const pi = { goal: '30000', mode: 'when', contrib: '30000', date: '', start: null, yld: '8', grow: '12', infl: '7' };
+let piDraw = false;
+const MONTH_IN = ['январе', 'феврале', 'марте', 'апреле', 'мае', 'июне', 'июле', 'августе', 'сентябре', 'октябре', 'ноябре', 'декабре'];
+const MONTH_TO = ['январю', 'февралю', 'марту', 'апрелю', 'маю', 'июню', 'июлю', 'августу', 'сентябрю', 'октябрю', 'ноябрю', 'декабрю'];
+const addMonths = n => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() + n); return d; };
+const monthKey = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+const piStart = () => (pi.start != null ? pi.start : String(Math.round(allTotals().value)));
+function fmtSpan(n) {
+  const y = Math.floor(n / 12), m = n % 12, parts = [];
+  if (y) parts.push(y + ' ' + plural(y, 'год', 'года', 'лет'));
+  if (m) parts.push(m + ' мес.');
+  return parts.join(' ') || 'меньше месяца';
+}
+const fmtMln = v => (v >= 1e6 ? nf.format(Math.round(v / 1e4) / 100) + ' млн ₽' : rub(Math.round(v)));
+
+function piCalc() {
+  const val = (s, d) => { const n = num(s); return isNaN(n) ? d : n; };
+  const goal = Math.max(0, val(pi.goal, 0));
+  const yld = val(pi.yld, 8) / 100, grow = val(pi.grow, 12) / 100, infl = val(pi.infl, 7) / 100;
+  const c0 = Math.max(0, val(piStart(), 0));
+  const need = yld > 0 ? goal / (1 - TAX) * 12 / yld : Infinity;      // капитал, который платит goal в месяц на руки
+  const rm = Math.pow((1 + grow) / (1 + infl), 1 / 12) - 1;           // реальный рост в месяц
+  const r = { goal, yld, grow, infl, c0, need, rm, ok: goal > 0 && isFinite(need) };
+  if (!r.ok) return r;
+  if (pi.mode === 'when') {
+    const p = Math.max(0, val(pi.contrib, 0));
+    let cap = c0, n = 0;
+    while (cap < need && n < 1200) { cap = cap * (1 + rm) + p; n++; }
+    r.contrib = p; r.months = cap >= need ? n : null;
+  } else {
+    const end = /^\d{4}-\d{2}$/.test(pi.date) ? pi.date : monthKey(addMonths(120));
+    const [Y, M] = end.split('-').map(Number), now = new Date();
+    const n = Math.max(1, (Y - now.getFullYear()) * 12 + (M - 1 - now.getMonth()));
+    const g = Math.pow(1 + rm, n);
+    const p = rm ? (need - c0 * g) * rm / (g - 1) : (need - c0) / n;
+    r.months = n; r.contrib = Math.max(0, p); r.enough = p <= 0;
+  }
+  // путь капитала по месяцам (с запасом после цели), не больше 360 точек
+  if (r.months != null) {
+    const N = Math.min(Math.max(Math.ceil(r.months * 1.15), 12), 1200), path = [c0];
+    let cap = c0;
+    for (let i = 1; i <= N; i++) { cap = cap * (1 + rm) + r.contrib; path.push(cap); }
+    r.path = path;
+    r.inv = path.map((_, i) => c0 + r.contrib * i);   // сколько человек вложил сам к месяцу i
+  }
+  return r;
+}
+
+// Сколько портфель реально принёс за 12 месяцев (по разделу «Дивиденды»), в месяц на руки
+function piIncomeNow() {
+  const { ev, loading } = incomeEvents();
+  if (loading && !ev.length) return null;
+  const sum = ev.filter(e => !e.future && e.amount).reduce((s, e) => s + e.amount, 0);
+  return sum * (1 - TAX) / 12;
+}
+
+function piHero() {
+  const r = piCalc();
+  if (!r.ok) return `<div class="hero-top"><span>Пассивный доход</span></div><div class="hero-empty">Укажите, сколько хотите получать в месяц, и доходность выше нуля.</div>`;
+  const when = r.months != null ? addMonths(r.months) : null;
+  let big, sub;
+  if (pi.mode === 'when') {
+    if (r.c0 >= r.need) { big = 'Цель достигнута'; sub = 'Текущего капитала уже хватает'; }
+    else if (r.months == null) { big = 'Больше 100 лет'; sub = 'Увеличьте взнос или стартовый капитал'; }
+    else { big = 'Через ' + fmtSpan(r.months); sub = `в ${MONTH_IN[when.getMonth()]} ${when.getFullYear()} года, если вкладывать ${rub(r.contrib)} в месяц`; }
+  } else {
+    if (r.enough) { big = 'Взносы не нужны'; sub = `Капитал сам вырастет до цели к ${MONTH_TO[when.getMonth()]} ${when.getFullYear()} года`; }
+    else { big = rub(Math.ceil(r.contrib / 100) * 100) + ' <span class="pi-big-sub">в месяц</span>'; sub = `столько вкладывать, чтобы выйти на цель к ${MONTH_TO[when.getMonth()]} ${when.getFullYear()} года`; }
+  }
+  const pct = Math.min(100, r.c0 / r.need * 100);
+  const inc = piIncomeNow();
+  const years = r.months != null ? r.months / 12 : 0;
+  // Сколько из капитала на момент цели — свои взносы, а сколько — рост на реинвестированных выплатах
+  const split = r.path && r.months != null && r.months > 0 && r.c0 < r.need
+    ? { own: r.inv[r.months], gain: Math.max(0, r.path[r.months] - r.inv[r.months]) } : null;
+  return `
+    <div class="hero-top"><span>Пассивный доход</span><span class="gold">${rub(r.goal)} в месяц</span></div>
+    <div class="big mid num">${big}</div>
+    <div class="sub-line">${sub}</div>
+    ${r.path ? `<div class="pi-chart${piDraw ? ' draw' : ''}" id="pi-chart"></div>
+      <div class="cur-legend" style="margin:6px 0 2px"><span style="--k:#fff">Капитал</span><span style="--k:rgba(255,255,255,.45)">Ваши взносы</span><span style="--k:#E2C06A">Цель</span></div>` : ''}
+    <div class="hero-stats">
+      <div><div class="k">Нужен капитал (в сегодняшних ценах)</div><div class="v num">${fmtMln(r.need)}</div></div>
+      ${years >= 1
+        ? `<div><div class="k">Это будет примерно в ${when.getFullYear()} году</div><div class="v num">≈ ${fmtMln(r.need * Math.pow(1 + r.infl, years))}</div><div class="k" style="margin-top:2px">с учётом роста цен ~${nf.format(r.infl * 100)}% в год</div></div>`
+        : `<div><div class="k">До налога 13%</div><div class="v num">${rub(r.goal / (1 - TAX))} в месяц</div></div>`}
+      ${split ? `<div><div class="k">Вложите сами</div><div class="v num">${fmtMln(split.own)}</div></div>
+      <div><div class="k">Добавит реинвестирование</div><div class="v num" style="color:#E2C06A">+${fmtMln(split.gain)}</div></div>` : ''}
+    </div>
+    <div style="margin-top:14px">
+      <div class="hero-top" style="min-height:0"><span>Уже есть: ${fmtMln(r.c0)}</span><span class="gold">${pct >= 1 || !r.c0 ? Math.floor(pct) : '<1'}%</span></div>
+      <div class="pi-bar"><i style="width:${pct.toFixed(1)}%"></i></div>
+      ${inc ? `<div class="sub-line" style="margin-top:8px;font-size:13px">За последний год портфель принёс ≈ ${rub(Math.round(inc))} в месяц на руки</div>` : ''}
+    </div>`;
+}
+
+function drawPiChart() {
+  const el = $('#pi-chart');
+  if (!el) return;
+  const r = piCalc();
+  const W = el.clientWidth || 300, H = el.clientHeight || 132, padB = 18, padT = 16;
+  const v = r.path, n = v.length - 1;
+  const max = Math.max(r.need, v[n]) * 1.06;
+  const X = i => i / n * W, Yv = y => padT + (1 - y / max) * (H - padT - padB);
+  const pts = v.map((y, i) => [X(i), Yv(y)]);
+  const d = pathOf(pts);
+  const gy = Yv(r.need), gi = r.months, startY = new Date().getFullYear();
+  const endYear = addMonths(n).getFullYear();
+  const dot = gi != null && gi <= n ? pts[gi] : null;
+  const dotYear = dot ? addMonths(gi).getFullYear() : null;
+  const labelX = dot ? Math.min(Math.max(dot[0], 24), W - 24) : 0;
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" aria-label="Рост капитала до цели">
+    <line class="goal" x1="0" x2="${W}" y1="${gy.toFixed(1)}" y2="${gy.toFixed(1)}"/>
+    <text class="gl" x="0" y="${(gy - 5).toFixed(1)}">Цель · ${fmtMln(r.need)}</text>
+    <path class="ar" d="${d} L${W} ${H - padB} L0 ${H - padB} Z"/>
+    <path class="ln own" d="${pathOf(r.inv.map((y, i) => [X(i), Yv(y)]))}" pathLength="1" stroke-dasharray="1 1"/>
+    <path class="ln" d="${d}" pathLength="1" stroke-dasharray="1 1"/>
+    ${dot ? `<circle class="dot" cx="${dot[0].toFixed(1)}" cy="${dot[1].toFixed(1)}" r="5"/>` : ''}
+    <text class="ax" x="0" y="${H - 3}">${startY}</text>
+    ${dot && labelX > 40 && labelX < W - 40 ? `<text class="ax dl" x="${labelX.toFixed(1)}" y="${H - 3}" text-anchor="middle" style="fill:#E2C06A">${dotYear}</text>` : ''}
+    ${!dot || W - labelX > 64 ? `<text class="ax" x="${W}" y="${H - 3}" text-anchor="end">${endYear}</text>` : ''}
+  </svg>`;
+  piDraw = false;
+}
+
+function piRefresh() {
+  const h = $('#pi-hero');
+  if (h) { h.innerHTML = ORNAMENT + piHero(); drawPiChart(); }
+}
+const piSave = () => storeSet('passive', JSON.stringify(pi));
+let piSaveTimer = 0;
+
 // ---------- экраны ----------
 const SCREENS = {
+  passive() {
+    if (!pi.date) pi.date = monthKey(addMonths(120));
+    const f = (key, title, hint, extra = '') => `
+      <label for="pi-${key}">${title}</label>
+      <input id="pi-${key}" data-pi="${key}" type="text" inputmode="decimal" value="${esc(key === 'start' ? piStart() : pi[key])}" placeholder="0" ${extra}>
+      ${hint ? `<div class="field-hint">${hint}</div>` : ''}`;
+    const s3 = (key, title) => `<div><label for="pi-${key}">${title}</label><input id="pi-${key}" data-pi="${key}" type="text" inputmode="decimal" value="${esc(pi[key])}"></div>`;
+    return `
+      ${backLink()}
+      <h1 style="margin-bottom:14px">Пассивный доход</h1>
+      <section class="hero" id="pi-hero">${ORNAMENT}${piHero()}</section>
+      <h2>Цель</h2>
+      ${f('goal', 'Хочу получать в месяц на руки, ₽', 'В сегодняшних деньгах: калькулятор сам учтёт рост цен.')}
+      <label>Что посчитать</label>
+      <div class="seg" style="--i:${pi.mode === 'how' ? 1 : 0}">
+        <button data-act="pi-mode" data-v="when" class="${pi.mode === 'when' ? 'on' : ''}">Когда выйду на цель</button>
+        <button data-act="pi-mode" data-v="how" class="${pi.mode === 'how' ? 'on' : ''}">Сколько вкладывать</button>
+      </div>
+      ${pi.mode === 'when'
+        ? f('contrib', 'Буду вкладывать в месяц, ₽', 'Раз в год увеличивайте взнос на инфляцию — так расчёт останется верным.')
+        : `<label for="pi-date">Хочу выйти на цель к</label><input id="pi-date" data-pi="date" type="month" value="${esc(pi.date)}" min="${monthKey(addMonths(1))}">`}
+      ${f('start', 'Уже есть, ₽', 'Стоимость вашего портфеля вместе с деньгами. Можно изменить.')}
+      ${pi.start != null ? `<button class="btn ghost" data-act="pi-start">Взять из портфеля: ${rub(allTotals().value)}</button>` : ''}
+      <details class="pi-more">
+        <summary>Допущения расчёта</summary>
+        <div class="pi-3">${s3('yld', 'Выплаты, % в год')}${s3('grow', 'Рост капитала, %')}${s3('infl', 'Инфляция, %')}</div>
+        <div class="field-hint" style="margin-top:10px">Выплаты — дивиденды и купоны сукука от стоимости капитала. Рост — выплаты, которые вы реинвестируете, плюс рост цен на бумаги. Реинвестированные выплаты сами приносят выплаты — это и есть сложный процент, он уже учтён. Ставка сукука сейчас высокая из‑за ставки ЦБ, поэтому по умолчанию берём осторожные 8%.</div>
+      </details>
+      <div class="callout"><b>Капитал не тратится</b>Вы живёте только на дивиденды и купоны, а сами бумаги остаются у вас и продолжают расти. Выплаты приносят акции и сукук. Крипта и деньги на счетах выплат не дают: для дохода их нужно переложить в бумаги.</div>
+      <p class="note">Это прогноз, а не обещание: дивиденды компании могут сократить, цены бумаг меняются. Налог 13% уже учтён.</p>
+      ${disclaimer}`;
+  },
+
   cash() {
     const total = cashTotal(), d = cashDayChange();
     const hasForeign = pf.cash.some(p => p.cur !== 'RUB');
@@ -1217,6 +1414,7 @@ const SCREENS = {
       </div>
       <h2>Инструменты</h2>
       <div class="group">
+        <button class="row" data-go="passive"><div class="main"><div class="title">Пассивный доход</div><div class="sub">Когда выплаты покроют нужную сумму</div></div><span class="chev">›</span></button>
         <button class="row" data-go="income"><div class="main"><div class="title">Дивиденды и очищение</div><div class="sub">Выплаты по вашим бумагам и сумма на садака</div></div><span class="chev">›</span></button>
         <button class="row" data-go="zakat"><div class="main"><div class="title">Калькулятор закята</div><div class="sub">По нисабу золота или серебра</div></div><span class="chev">›</span></button>
         <div class="row static"><div class="main"><div class="title">Привязка брокерского счёта</div></div><span class="hint">Скоро</span></div>
@@ -1617,6 +1815,11 @@ const ACTIONS = {
   },
   'zk-fill': () => { zk.inv = String(round2(allTotals().inv)); render(false); },
   'zk-fill-cash': () => { zk.cash = String(round2(cashTotal())); render(false); },
+  'pi-mode': el => {
+    if (pi.mode === el.dataset.v) return;
+    slideSeg(el, el.dataset.v === 'how' ? 1 : 0, () => { pi.mode = el.dataset.v; piDraw = true; render(false); piSave(); });
+  },
+  'pi-start': () => { pi.start = null; piDraw = true; render(false); piSave(); },
   'cash-save': saveCash,
   'cash-delete': deleteCash,
   'cash-kind': el => {
@@ -1649,6 +1852,12 @@ document.addEventListener('click', e => {
 document.addEventListener('input', e => {
   const key = e.target.dataset && e.target.dataset.zk;
   if (key) { zk[key] = e.target.value; const r = $('#zk-result'); if (r) r.innerHTML = zakatResult(); }
+  const pk = e.target.dataset && e.target.dataset.pi;
+  if (pk) {
+    pi[pk] = e.target.value;
+    piRefresh();
+    clearTimeout(piSaveTimer); piSaveTimer = setTimeout(piSave, 600);
+  }
   if (e.target.id === 'f-ca' || e.target.id === 'f-cn') {
     const c = cur();
     if (e.target.id === 'f-ca') { c.amt = e.target.value; const el = $('#f-conv'); if (el) el.textContent = cashConvText(c); }
@@ -1685,6 +1894,7 @@ document.addEventListener('change', e => {
 function render(resetScroll = true, anim = null) {
   const c = cur();
   const screen = SCREENS[c.name] || SCREENS.home;
+  if (anim && c.name === 'passive') piDraw = true;
   app.innerHTML = screen(c);
   if (anim) {
     app.classList.remove('anim-push', 'anim-pop', 'anim-tab');
@@ -1709,6 +1919,7 @@ function render(resetScroll = true, anim = null) {
   if (anim) chartAnimate = true;
   mountCharts();
   mountIncome();
+  if (c.name === 'passive') drawPiChart();
   justAdded = null;
   if (inTelegram && atLeast('6.1')) { stack.length > 1 ? tg.BackButton.show() : tg.BackButton.hide(); }
   if (resetScroll) window.scrollTo(0, 0);
@@ -1875,7 +2086,7 @@ function incomeTeaser() {
 
 function mountIncome() {
   const name = cur().name;
-  if (name !== 'income' && name !== 'home') return;
+  if (name !== 'income' && name !== 'home' && name !== 'passive') return;
   const need = incomeAssets().filter(({ a, kind }) => {
     const c = incomeCache[kind + '|' + a.id];
     return !c || Date.now() - c.at >= (c.err ? 120000 : INCOME_TTL);
@@ -2000,11 +2211,48 @@ async function fetchCryptoHistory(a, period) {
       if (Array.isArray(rows) && rows.length > 1) return { t: rows.map(r => +r[0]), v: rows.map(r => +r[4]) };
     } catch (e) { binanceOk = false; }
   }
-  const P = periodOf(period);
-  const j = await cgFetch('https://api.coingecko.com/api/v3/coins/' + a.cg + '/market_chart?vs_currency=usd&days=' + P.days);
-  const t = [], v = [];
-  (j.prices || []).forEach(([ms, val]) => { if (val > 0) { t.push(ms); v.push(val); } });
-  return { t, v };
+  const P = periodOf(period), g = histGroup(period);
+  // CryptoCompare: щедрые бесплатные лимиты, один запрос на две вкладки периода
+  if (ccOk && a.ticker) {
+    try {
+      const r = await histMemo('cc|' + a.ticker + '|' + g, async () => {
+        const j = await fetchJSON('https://min-api.cryptocompare.com/data/v2/' + (g === 'h' ? 'histohour' : 'histoday')
+          + '?fsym=' + encodeURIComponent(a.ticker) + '&tsym=USD&limit=' + (g === 'h' ? 720 : 365));
+        const rows = (j && j.Response === 'Success' && j.Data && j.Data.Data) || [];
+        const out = { t: [], v: [] };
+        rows.forEach(x => { if (x.close > 0) { out.t.push(x.time * 1000); out.v.push(x.close); } });
+        if (out.t.length < 2) throw new Error('нет данных');
+        return out;
+      });
+      return sliceDays(r, P.days);
+    } catch (e) { if (e instanceof TypeError) ccOk = false; }   // сеть или CORS — источник недоступен целиком
+  }
+  // CoinGecko: 30 дней по часам закрывают 1Н и 1М, год по дням — 3М и 1Г. Так запросов вдвое меньше.
+  const r = await histMemo('cg|' + a.cg + '|' + g, async () => {
+    const j = await cgFetch('https://api.coingecko.com/api/v3/coins/' + a.cg + '/market_chart?vs_currency=usd&days=' + (g === 'h' ? 30 : 365));
+    const out = { t: [], v: [] };
+    (j.prices || []).forEach(([ms, val]) => { if (val > 0) { out.t.push(ms); out.v.push(val); } });
+    return out;
+  });
+  return sliceDays(r, P.days);
+}
+
+let ccOk = true;
+const histGroup = period => (period === '1W' || period === '1M' ? 'h' : 'd');
+const histMemos = {};
+// Один запрос на группу периодов: повторные обращения в течение 15 минут получают тот же ответ
+function histMemo(key, fn) {
+  const m = histMemos[key];
+  if (m && Date.now() - m.at < RAW_TTL) return m.p;
+  const p = fn();
+  histMemos[key] = { at: Date.now(), p };
+  p.catch(() => { delete histMemos[key]; });
+  return p;
+}
+function sliceDays(r, days) {
+  const from = Date.now() - days * 86400000;
+  const i = r.t.findIndex(x => x >= from);
+  return i <= 0 ? r : { t: r.t.slice(i), v: r.v.slice(i) };
 }
 
 function ensureRaw(n) {
@@ -2017,7 +2265,12 @@ function ensureRaw(n) {
         try { localStorage.setItem('h:' + key, JSON.stringify(rawCache[key])); } catch (e) {}
         return rawCache[key];
       })
-      .catch(e => (rawCache[key] = { at: Date.now(), t: [], v: [], err: true, msg: String(e && e.message || e) }))
+      .catch(e => {
+        // Не удалось обновить, но старая история есть — показываем её и пробуем снова через 2 минуты
+        const old = rawCache[key];
+        if (old && !old.err && old.t.length) { old.at = Date.now() - RAW_TTL + 120000; return old; }
+        return (rawCache[key] = { at: Date.now(), t: [], v: [], err: true, msg: String(e && e.message || e) });
+      })
       .finally(() => { delete rawPending[key]; });
   }
   return rawPending[key];
@@ -2117,7 +2370,7 @@ function drawAny(el, spec, animate) {
   if (spec.kind !== 'spark') {
     if (!spec.needs.length) return chartNote(el, 'Для активов, внесённых вручную, графика нет: у них нет истории цен.');
     if (bad.length === spec.needs.length) {
-      const r = bad[0], src = spec.needs[0].sec === 'crypto' ? 'CoinGecko' : 'Мосбиржа';
+      const r = bad[0], src = spec.needs[0].sec === 'crypto' ? 'биржи и CoinGecko' : 'Мосбиржа';
       return chartNote(el, 'Не удалось загрузить историю цен (' + src + ': ' + (r.err ? r.msg : 'пустой ответ') + '). Попробуем снова через пару минут.');
     }
   } else if (spec.needs.length && bad.length === spec.needs.length) { el.innerHTML = ''; return; }
