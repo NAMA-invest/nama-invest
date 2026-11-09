@@ -371,6 +371,11 @@
   .pi-bar i { display: block; height: 100%; border-radius: 3px; background: #E2C06A; transition: width .6s var(--ease); }
   .pi-big-sub { font-size: 14px; color: var(--hint); font-weight: 400; letter-spacing: 0; }
   #pi-hero .big.mid { font-size: 28px; }
+  .lock { min-height: 70vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 0 12px; }
+  .lock-star svg { width: 56px; height: 56px; fill: none; stroke: var(--gold); stroke-width: 1.2; margin-bottom: 18px; }
+  .lock h1 { margin-bottom: 10px; }
+  .lock p { color: var(--hint); line-height: 1.5; max-width: 320px; margin: 0 0 22px; }
+  .lock .btn { max-width: 320px; }
   .upd {
     position: fixed; left: 50%; transform: translateX(-50%); z-index: 50;
     bottom: calc(78px + max(env(safe-area-inset-bottom), var(--bottom-inset, 0px)));
@@ -494,7 +499,7 @@
 // =====================================================================
 
 // Номер версии — виден внизу раздела «Другое». Меняется при каждом обновлении.
-const APP_VERSION = '0.22';
+const APP_VERSION = '1.0';
 
 // Шариатский комитет — экран в разделе «Другое».
 // Пока список пуст, в приложении написано, что состав и заключения скоро появятся.
@@ -511,6 +516,9 @@ const COMMITTEE = {
 
 // Username аккаунта поддержки без @. Пока пусто — в приложении будет «Скоро».
 const SUPPORT_USERNAME = '';
+// Закрытый доступ: адрес функции в Yandex Cloud. Пусто — приложение открыто всем.
+const ACCESS_URL = 'https://functions.yandexcloud.net/d4essb8cfkc0tdj7l39c';
+const BOT_USERNAME = 'NAMA_invest_bot';
 
 // Статусы: 'ok' — разрешено, 'review' — на перепроверке, 'pending' — ждёт заключения.
 // Пояснение к стейблкоинам: issuer — компания-эмитент
@@ -2768,9 +2776,12 @@ async function init() {
     tg.onEvent('themeChanged', applyScheme);
   }
   splashHeader();
+  const access = checkAccess();
   await loadAll();
   applyScheme();
   splashHeader();
+  const acc = await access;
+  if (acc !== 'approved') { showLock(acc); return; }
   render();
   requestAnimationFrame(() => requestAnimationFrame(() => document.documentElement.classList.remove('no-trans')));
   refreshPrices();
@@ -2783,6 +2794,57 @@ async function init() {
   else showUpdateBar(v);
   setInterval(() => { if (!document.hidden) refreshPrices(); }, 30000);
   setInterval(() => { if (!document.hidden) findUpdate().then(n => { if (n) showUpdateBar(n); }); }, 20 * 60 * 1000);
+}
+
+// ---------- закрытый доступ ----------
+// Сервер проверяет подпись Telegram и отвечает: approved / pending / rejected / none / invalid.
+// Если сервер недоступен, пускаем тех, кому доступ подтверждали за последние 14 дней.
+async function checkAccess() {
+  if (!ACCESS_URL) return 'approved';
+  if (!inTelegram || !tg.initData) return 'outside';
+  let ok = 0;
+  try { ok = +localStorage.getItem('access_ok') || 0; } catch (e) {}
+  try {
+    const ctrl = new AbortController(), timer = setTimeout(() => ctrl.abort(), 7000);
+    // text/plain — «простой» запрос: браузер не делает лишний предварительный запрос CORS
+    const r = await fetch(ACCESS_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ initData: tg.initData }), signal: ctrl.signal });
+    clearTimeout(timer);
+    const st = (await r.json()).status;
+    if (st === 'approved') { try { localStorage.setItem('access_ok', String(Date.now())); } catch (e) {} return st; }
+    if (st === 'error') throw new Error('server');
+    try { localStorage.removeItem('access_ok'); } catch (e) {}
+    return st;
+  } catch (e) {
+    return Date.now() - ok < 14 * 86400000 ? 'approved' : 'offline';
+  }
+}
+
+const LOCK_TEXT = {
+  none: ['NAMA в закрытом тесте', 'Чтобы получить доступ, оставьте заявку в боте. Мы напишем, как только откроем доступ.', 'Оставить заявку'],
+  pending: ['Заявка на рассмотрении', 'Мы напишем вам в бот, как только откроем доступ.', 'Открыть бот'],
+  rejected: ['Доступ пока закрыт', 'Мы напишем, когда NAMA станет доступна всем.', 'Открыть бот'],
+  invalid: ['Не удалось проверить вход', 'Закройте приложение и откройте его снова из бота NAMA Invest.', 'Открыть бот'],
+  outside: ['NAMA работает в Telegram', 'Откройте приложение из бота NAMA Invest.', 'Открыть бот'],
+  offline: ['Нет связи с сервером', 'Проверьте интернет и попробуйте ещё раз.', 'Повторить']
+};
+function showLock(state) {
+  const [title, text, btn] = LOCK_TEXT[state] || LOCK_TEXT.invalid;
+  document.getElementById('nav').style.display = 'none';
+  app.innerHTML = `
+    <section class="lock">
+      <div class="lock-star">${STAR}</div>
+      <h1>${title}</h1>
+      <p>${text}</p>
+      <button class="btn" id="lock-btn">${btn}</button>
+    </section>`;
+  document.getElementById('lock-btn').addEventListener('click', () => {
+    if (state === 'offline') return location.reload();
+    const link = 'https://t.me/' + BOT_USERNAME + (state === 'none' ? '?start=apply' : '');
+    if (inTelegram && atLeast('6.1')) { tg.openTelegramLink(link); try { tg.close(); } catch (e) {} }
+    else location.href = link;
+  });
+  hideSplash();
 }
 
 // ---------- обновления ----------
