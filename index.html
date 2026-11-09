@@ -513,7 +513,7 @@
 // =====================================================================
 
 // Номер версии — виден внизу раздела «Другое». Меняется при каждом обновлении.
-const APP_VERSION = '1.1';
+const APP_VERSION = '1.2';
 
 // Шариатский комитет — экран в разделе «Другое».
 // Пока список пуст, в приложении написано, что состав и заключения скоро появятся.
@@ -1279,14 +1279,14 @@ const REP_BLOCKS = [
   ['day', 'Итог дня по разделам', 'Изменение портфеля, лидер и аутсайдер дня'],
   ['events', 'Отсечки, купоны и очищение', 'Ближайшие выплаты и сумма на садака'],
   ['passive', 'Пассивный доход', 'По пятницам: сколько цели покрывают выплаты'],
-  ['fx', 'Курсы валют', 'Для валюты из раздела «Деньги»']
+  ['fx', 'Курсы валют', 'Доллар, евро и юань по курсу ЦБ']
 ];
 const normReport = v => ({
   enabled: !!v.enabled,
   freq: REP_FREQ[v.freq] ? v.freq : 'daily',
   hour: Number.isInteger(v.hour) && v.hour >= 0 && v.hour <= 23 ? v.hour : 19,
   quiet: v.quiet !== false,
-  blocks: Object.assign({ day: true, events: true, passive: true, fx: false }, v.blocks || {})
+  blocks: Object.assign({ day: true, events: true, passive: true, fx: true }, v.blocks || {})
 });
 let reportCfg = normReport({});
 let repStatus = '';            // строка под переключателем: сохранено / ошибка
