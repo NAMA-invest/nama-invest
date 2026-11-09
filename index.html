@@ -371,6 +371,20 @@
   .pi-bar i { display: block; height: 100%; border-radius: 3px; background: #E2C06A; transition: width .6s var(--ease); }
   .pi-big-sub { font-size: 14px; color: var(--hint); font-weight: 400; letter-spacing: 0; }
   #pi-hero .big.mid { font-size: 28px; }
+  /* ---- отчёт в Telegram ---- */
+  .sw { width: 46px; height: 28px; border-radius: 14px; border: 0; padding: 0; background: var(--line); position: relative; flex-shrink: 0; cursor: pointer; transition: background-color .2s ease; }
+  .sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.2); transition: transform .22s var(--ease); }
+  .sw.on { background: var(--brand); }
+  .sw.on::after { transform: translateX(18px); }
+  .hero .sw.on { background: #D4B262; }
+  .hero .sw:not(.on) { background: rgba(255,255,255,.25); }
+  .rep-head { display: flex; align-items: center; gap: 12px; }
+  .rep-head .m { flex: 1; font-size: 17px; font-weight: 600; color: #fff; }
+  .rep-head .m small { display: block; font-size: 13.5px; font-weight: 400; color: var(--hint); margin-top: 2px; }
+  .rep-status { font-size: 13px; color: var(--hint); margin-top: 10px; min-height: 18px; }
+  .row select { width: auto; min-height: 0; padding: 6px 10px; border-radius: 10px; font-size: 15px; }
+  .row.sw-row { cursor: default; }
+  .rep-preview { background: var(--card); border-radius: 16px; padding: 12px 14px; font-size: 14px; line-height: 1.5; box-shadow: var(--shadow); }
   .lock { min-height: 70vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 0 12px; }
   .lock-star svg { width: 56px; height: 56px; fill: none; stroke: var(--gold); stroke-width: 1.2; margin-bottom: 18px; }
   .lock h1 { margin-bottom: 10px; }
@@ -499,7 +513,7 @@
 // =====================================================================
 
 // Номер версии — виден внизу раздела «Другое». Меняется при каждом обновлении.
-const APP_VERSION = '1.0';
+const APP_VERSION = '1.1';
 
 // Шариатский комитет — экран в разделе «Другое».
 // Пока список пуст, в приложении написано, что состав и заключения скоро появятся.
@@ -720,12 +734,14 @@ async function loadAll() {
   const c = await storeGet('cur_crypto');
   if (c === 'rub' || c === 'usd') cryptoCur = c;
   try { const v = JSON.parse(await storeGet('purify_pct')); if (v && typeof v === 'object') purifyPct = v; } catch (e) {}
+  try { const v = JSON.parse(await storeGet('report_cfg')); if (v && typeof v === 'object') reportCfg = normReport(v); } catch (e) {}
   try { const v = JSON.parse(await storeGet('purified')); if (v && typeof v === 'object') purified = v; } catch (e) {}
   try {
     const v = JSON.parse(await storeGet('passive'));
     if (v && typeof v === 'object') {
       if (v.v !== pi.v) { delete v.yld; delete v.grow; delete v.infl; }   // старые допущения 0.21 заменяем данными по рынку РФ
       for (const k in pi) if (k in v && k !== 'v') pi[k] = v[k];
+      piUsed = true;
     }
   } catch (e) {}
   const t = await storeGet('theme');
@@ -739,6 +755,7 @@ async function persist(sec) {
   if (data.length > 4000) { alertMsg('В разделе слишком много позиций. Удалите лишние.'); return false; }
   const ok = await storeSet('pf_' + sec, data);
   if (!ok) alertMsg('Не удалось сохранить. Проверьте интернет и попробуйте ещё раз.');
+  else if (reportCfg.enabled) syncReport();
   return ok;
 }
 
@@ -1251,11 +1268,139 @@ function piRefresh() {
   const h = $('#pi-hero');
   if (h) { h.innerHTML = ORNAMENT + piHero(); drawPiChart(); }
 }
-const piSave = () => storeSet('passive', JSON.stringify(pi));
+let piUsed = false;   // человек открывал калькулятор и задавал цель — только тогда цель идёт в отчёт
+const piSave = () => { piUsed = true; return storeSet('passive', JSON.stringify(pi)); };
 let piSaveTimer = 0;
+
+// ---------- отчёт в Telegram ----------
+// Чтобы бот посчитал отчёт, нужен снимок портфеля на сервере. Он отправляется только при включённом отчёте.
+const REP_FREQ = { daily: 'Каждый день', weekly: 'Раз в неделю', events: 'Только события' };
+const REP_BLOCKS = [
+  ['day', 'Итог дня по разделам', 'Изменение портфеля, лидер и аутсайдер дня'],
+  ['events', 'Отсечки, купоны и очищение', 'Ближайшие выплаты и сумма на садака'],
+  ['passive', 'Пассивный доход', 'По пятницам: сколько цели покрывают выплаты'],
+  ['fx', 'Курсы валют', 'Для валюты из раздела «Деньги»']
+];
+const normReport = v => ({
+  enabled: !!v.enabled,
+  freq: REP_FREQ[v.freq] ? v.freq : 'daily',
+  hour: Number.isInteger(v.hour) && v.hour >= 0 && v.hour <= 23 ? v.hour : 19,
+  quiet: v.quiet !== false,
+  blocks: Object.assign({ day: true, events: true, passive: true, fx: false }, v.blocks || {})
+});
+let reportCfg = normReport({});
+let repStatus = '';            // строка под переключателем: сохранено / ошибка
+const hh = h => String(h).padStart(2, '0') + ':00';
+
+async function apiCall(action, extra) {
+  if (!ACCESS_URL || !inTelegram || !tg.initData) throw new Error('outside');
+  const ctrl = new AbortController(), timer = setTimeout(() => ctrl.abort(), 15000);
+  try {
+    const r = await fetch(ACCESS_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, signal: ctrl.signal,
+      body: JSON.stringify(Object.assign({ initData: tg.initData, action }, extra || {})) });
+    return await r.json();
+  } finally { clearTimeout(timer); }
+}
+
+// Снимок портфеля для бота: только то, что нужно для отчёта
+function reportSnapshot() {
+  const items = [];
+  for (const sec of SECTIONS) for (const p of pf[sec]) {
+    const a = p.a && findAsset(sec, p.a);
+    const it = { sec, id: p.a || p.i, name: a ? (a.short || a.name) : p.n, q: p.q, fb: round2(priceOf(p) || 0) };
+    if (a && sec === 'stocks') { it.moex = a.ticker; if (purifyOf(a) != null) it.purify = purifyOf(a); }
+    if (a && sec === 'sukuk' && a.moex) { it.moex = a.moex.secid; it.board = a.moex.board; }
+    if (a && sec === 'crypto' && a.cg) it.cg = a.cg;
+    items.push(it);
+  }
+  const goal = num(pi.goal);
+  return {
+    v: 1, items,
+    cash: pf.cash.map(c => ({ n: c.n, cur: c.cur, amt: c.amt })),
+    passive: piUsed && goal > 0 ? { goal, income: Math.round(piIncomeNow() || 0) } : null
+  };
+}
+
+let repTimer = 0;
+function syncReport(now) {
+  clearTimeout(repTimer);
+  repTimer = setTimeout(async () => {
+    try {
+      const r = await apiCall('report_save', { settings: reportCfg, snapshot: reportSnapshot() });
+      repStatus = r && r.ok ? 'Сохранено' : 'Не удалось сохранить на сервере';
+    } catch (e) { repStatus = 'Нет связи с сервером, сохраним позже'; }
+    const el = $('#rep-status'); if (el) el.textContent = repStatus;
+  }, now ? 0 : 1200);
+}
+
+async function setReport(change) {
+  const was = reportCfg.enabled;
+  reportCfg = normReport(Object.assign({}, reportCfg, change));
+  hapticSelect();
+  storeSet('report_cfg', JSON.stringify(reportCfg));
+  if (was && !reportCfg.enabled) {
+    repStatus = 'Отчёт выключен, копия портфеля удалена с сервера';
+    apiCall('report_off').catch(() => { repStatus = 'Нет связи: удалим копию, когда появится интернет'; });
+  } else if (reportCfg.enabled) {
+    repStatus = 'Сохраняем…';
+    syncReport(!was);
+  }
+  render(false);
+}
+
+async function testReport() {
+  const btn = $('[data-act="rep-test"]');
+  if (btn) { btn.disabled = true; btn.textContent = 'Отправляем…'; }
+  try {
+    await apiCall('report_save', { settings: reportCfg, snapshot: reportSnapshot() });
+    const r = await apiCall('report_test');
+    if (r && r.ok) { haptic('success'); alertMsg('Отправили пример в чат с ботом NAMA Invest.'); }
+    else alertMsg('Не получилось отправить. Попробуйте через минуту.');
+  } catch (e) { alertMsg('Нет связи с сервером. Попробуйте через минуту.'); }
+  if (btn) { btn.disabled = false; btn.textContent = 'Прислать пример сейчас'; }
+}
 
 // ---------- экраны ----------
 const SCREENS = {
+  report() {
+    const c = reportCfg, on = c.enabled;
+    const sw = (act, val, v = '') => `<button class="sw${val ? ' on' : ''}" data-act="${act}"${v ? ` data-v="${v}"` : ''} role="switch" aria-checked="${val}"></button>`;
+    const hours = Array.from({ length: 17 }, (_, i) => i + 6)
+      .map(h => `<option value="${h}"${h === c.hour ? ' selected' : ''}>${hh(h)}</option>`).join('');
+    const freqKeys = Object.keys(REP_FREQ);
+    const settings = !on ? `
+      <h2>Что будет в отчёте</h2>
+      <div class="rep-preview">
+        <b>NAMA · итог дня</b><br>Портфель и изменение за день, по разделам<br>Лидер и аутсайдер дня<br>
+        Ближайшие отсечки и купоны — сколько придёт после налога<br>Сумма на очищение дивидендов<br>
+        По пятницам — прогресс пассивного дохода
+      </div>` : `
+      <h2>Как часто</h2>
+      <div class="seg seg-cur" style="--n:3;--i:${freqKeys.indexOf(c.freq)}">
+        ${freqKeys.map(k => `<button data-act="rep-freq" data-v="${k}" class="${c.freq === k ? 'on' : ''}">${REP_FREQ[k]}</button>`).join('')}
+      </div>
+      <p class="note" style="margin-top:8px">${c.freq === 'weekly' ? 'Отчёт приходит по пятницам.' : c.freq === 'events' ? 'Бот пишет, только когда до отсечки или купона по вашим бумагам осталось 3 дня или меньше.' : 'Отчёт приходит каждый день в выбранное время.'}</p>
+      <div class="group" style="margin-top:10px">
+        <div class="row static"><div class="main"><div class="title">Время</div><div class="sub">По Москве</div></div><select id="rep-hour" aria-label="Время отчёта">${hours}</select></div>
+        ${c.freq === 'daily' ? `<div class="row sw-row"><div class="main"><div class="title">Молчать в тихие дни</div><div class="sub">Если портфель сдвинулся меньше 0,3% и нет событий</div></div>${sw('rep-quiet', c.quiet)}</div>` : ''}
+      </div>
+      <h2>Что включать</h2>
+      <div class="group">
+        ${REP_BLOCKS.map(([k, t, sub]) => `<div class="row sw-row"><div class="main"><div class="title">${t}</div><div class="sub">${sub}</div></div>${sw('rep-block', c.blocks[k], k)}</div>`).join('')}
+      </div>
+      <button class="btn ghost" data-act="rep-test">Прислать пример сейчас</button>`;
+    return `
+      ${backLink()}
+      <h1 style="margin-bottom:14px">Отчёт в Telegram</h1>
+      <section class="hero">${ORNAMENT}
+        <div class="rep-head"><div class="m">Присылать отчёт<small>Бот напишет в чат NAMA Invest</small></div>${sw('rep-toggle', on)}</div>
+        <div class="rep-status" id="rep-status">${repStatus}</div>
+      </section>
+      ${settings}
+      <div class="callout"><b>Где хранится портфель</b>Чтобы бот посчитал отчёт, копия портфеля хранится на сервере NAMA в России. Выключите отчёт — копия удалится.</div>
+      <p class="note">Отчёт — информация о вашем портфеле, а не совет купить или продать.</p>`;
+  },
+
   passive() {
     if (!pi.date) pi.date = monthKey(addMonths(120));
     const f = (key, title, hint, extra = '') => `
@@ -1510,6 +1655,7 @@ const SCREENS = {
       </div>
       <h2>Инструменты</h2>
       <div class="group">
+        ${ACCESS_URL ? `<button class="row" data-go="report"><div class="main"><div class="title">Отчёт в Telegram</div><div class="sub">${reportCfg.enabled ? 'Включён · ' + REP_FREQ[reportCfg.freq].toLowerCase() + ' в ' + hh(reportCfg.hour) : 'Итог дня от бота: портфель, отсечки, очищение'}</div></div><span class="chev">›</span></button>` : ''}
         <button class="row" data-go="passive"><div class="main"><div class="title">Пассивный доход</div><div class="sub">Когда выплаты покроют нужную сумму</div></div><span class="chev">›</span></button>
         <button class="row" data-go="income"><div class="main"><div class="title">Дивиденды и очищение</div><div class="sub">Выплаты по вашим бумагам и сумма на садака</div></div><span class="chev">›</span></button>
         <button class="row" data-go="zakat"><div class="main"><div class="title">Калькулятор закята</div><div class="sub">По нисабу золота или серебра</div></div><span class="chev">›</span></button>
@@ -1917,6 +2063,14 @@ const ACTIONS = {
   },
   'pi-start': () => { pi.start = null; piDraw = true; render(false); piSave(); },
   'pi-reset': () => { pi.yld = null; pi.grow = PI_DEF.grow; pi.infl = PI_DEF.infl; piDraw = true; render(false); piSave(); },
+  'rep-toggle': () => setReport({ enabled: !reportCfg.enabled }),
+  'rep-freq': el => {
+    if (reportCfg.freq === el.dataset.v) return;
+    slideSeg(el, Object.keys(REP_FREQ).indexOf(el.dataset.v), () => setReport({ freq: el.dataset.v }));
+  },
+  'rep-quiet': () => setReport({ quiet: !reportCfg.quiet }),
+  'rep-block': el => setReport({ blocks: Object.assign({}, reportCfg.blocks, { [el.dataset.v]: !reportCfg.blocks[el.dataset.v] }) }),
+  'rep-test': testReport,
   'cash-save': saveCash,
   'cash-delete': deleteCash,
   'cash-kind': el => {
@@ -1947,6 +2101,7 @@ document.addEventListener('click', e => {
 });
 
 document.addEventListener('input', e => {
+  if (e.target.id === 'rep-hour') setReport({ hour: +e.target.value });
   const key = e.target.dataset && e.target.dataset.zk;
   if (key) { zk[key] = e.target.value; const r = $('#zk-result'); if (r) r.innerHTML = zakatResult(); }
   const pk = e.target.dataset && e.target.dataset.pi;
@@ -2783,6 +2938,7 @@ async function init() {
   const acc = await access;
   if (acc !== 'approved') { showLock(acc); return; }
   render();
+  if (reportCfg.enabled) setTimeout(() => syncReport(true), 8000);   // свежий снимок, когда цены уже загрузились
   requestAnimationFrame(() => requestAnimationFrame(() => document.documentElement.classList.remove('no-trans')));
   refreshPrices();
   // Пока видна заставка, проверяем, нет ли на GitHub версии новее: если есть — сразу загружаем её
