@@ -297,6 +297,7 @@
 
   /* ================= ФИРМЕННАЯ КАРТОЧКА ================= */
   .brandbar { display: flex; align-items: center; justify-content: space-between; margin: 2px 0 14px; }
+  .bb-btns { display: flex; gap: 8px; }
   .logo { display: flex; align-items: center; gap: 8px; font-size: 20px; font-weight: 700; letter-spacing: .5px; }
   .logo svg { width: 22px; height: 22px; fill: none; stroke: var(--gold); stroke-width: 1.6; }
   .logo em { font-style: normal; color: var(--gold); }
@@ -513,7 +514,7 @@
 // =====================================================================
 
 // Номер версии — виден внизу раздела «Другое». Меняется при каждом обновлении.
-const APP_VERSION = '1.2';
+const APP_VERSION = '1.3';
 
 // Шариатский комитет — экран в разделе «Другое».
 // Пока список пуст, в приложении написано, что состав и заключения скоро появятся.
@@ -528,7 +529,7 @@ const COMMITTEE = {
   contact: ''   // username для вопросов комитету, без @. Если пусто — кнопки нет.
 };
 
-// Username аккаунта поддержки без @. Пока пусто — в приложении будет «Скоро».
+// Username аккаунта поддержки без @ (сейчас не используется: обращения идут через бота, кнопка «Написать разработчику»).
 const SUPPORT_USERNAME = '';
 // Закрытый доступ: адрес функции в Yandex Cloud. Пусто — приложение открыто всем.
 const ACCESS_URL = 'https://functions.yandexcloud.net/d4essb8cfkc0tdj7l39c';
@@ -698,6 +699,10 @@ const nfSmall = new Intl.NumberFormat('ru-RU', { maximumSignificantDigits: 3 });
 const fmtAmt = v => (v !== 0 && Math.abs(v) < 1 ? nfSmall.format(v) : nf.format(round2(v)));
 const money = (v, c = 'rub') => fmtAmt(v) + ' ' + SYM[c];
 const signedMoney = (v, c = 'rub') => sign(v) + nf.format(Math.abs(round2(v))) + ' ' + SYM[c];
+// «Скрыть суммы»: числа в деньгах заменяются точками, проценты остаются
+let hideSums = false;
+// «Скрыть суммы»: число заменяется точками, знак валюты и «шт.» остаются, проценты не трогаем
+const hid = s => hideSums ? String(s).replace(/[−+]?\d(?:[\d\s\u00a0\u202f.,]*\d)?/g, '••••') : s;
 
 // Валюта отображения: в разделе «Криптовалюта» её выбирает пользователь, в остальных — рубль.
 let cryptoCur = 'rub';
@@ -744,6 +749,7 @@ async function loadAll() {
       piUsed = true;
     }
   } catch (e) {}
+  hideSums = (await storeGet('hide_sums')) === '1';
   const t = await storeGet('theme');
   if (t === 'light' || t === 'dark') {
     themePref = t;
@@ -763,6 +769,9 @@ async function persist(sec) {
 function alertMsg(text) { if (inTelegram && atLeast('6.2')) tg.showAlert(text); else alert(text); }
 function confirmMsg(text, cb) { if (inTelegram && atLeast('6.2')) tg.showConfirm(text, cb); else cb(confirm(text)); }
 function haptic(type) { try { if (inTelegram && atLeast('6.1')) tg.HapticFeedback.notificationOccurred(type); } catch (e) {} }
+function hapticTap(style = 'light') { try { if (inTelegram && atLeast('6.1')) tg.HapticFeedback.impactOccurred(style); } catch (e) {} }
+// Сообщение о неверном вводе: короткая «ошибка» вибрацией и окно с текстом
+function warn(text) { haptic('error'); alertMsg(text); }
 
 // ---------- живые цены ----------
 const prices = {};                         // id актива → цена за 1 шт. в рублях
@@ -967,8 +976,8 @@ function positionRow(sec, p) {
   const price = priceOf(p, c);
   const value = p.q * price, pl = value - p.q * costOf(p, c);
   return `<button class="row${p.i === justAdded ? ' just-added' : ''}" data-go="edit" data-sec="${sec}" data-pid="${esc(p.i)}">
-    <div class="main"><div class="title">${esc(p.n)}</div><div class="sub num">${nf.format(p.q)} шт. по <span class="${p.a ? flashCls(p.a) : ''}">${money(price, c)}</span>${p.a ? changeHtml(p.a, c) : ''}</div></div>
-    <div class="right"><div>${money(value, c)}</div><div class="sub ${tone(pl)}">${signedMoney(pl, c)}</div></div>
+    <div class="main"><div class="title">${esc(p.n)}</div><div class="sub num">${hid(nf.format(p.q) + ' шт.')} по <span class="${p.a ? flashCls(p.a) : ''}">${money(price, c)}</span>${p.a ? changeHtml(p.a, c) : ''}</div></div>
+    <div class="right"><div>${hid(money(value, c))}</div><div class="sub ${tone(pl)}">${hid(signedMoney(pl, c))}</div></div>
   </button>`;
 }
 
@@ -1020,10 +1029,10 @@ function incomeTiles() {
   const waiting = loading && !ev.length;
   const t1 = waiting ? sk : next
     ? (next.amount
-        ? `<div class="v">≈ ${rub(next.amount)}</div><div class="s">${esc(shortName(next.a))}, ${fmtShort(next.date)}</div>`
+        ? `<div class="v">≈ ${hid(rub(next.amount))}</div><div class="s">${esc(shortName(next.a))}, ${fmtShort(next.date)}</div>`
         : `<div class="v">${fmtShort(next.date)}</div><div class="s">${esc(shortName(next.a))}, сумма не объявлена</div>`)
     : '<div class="v">—</div><div class="s">Объявленных выплат нет</div>';
-  const t2 = waiting ? sk : `<div class="v">${rub(due)}</div><span class="tag">садака</span>`;
+  const t2 = waiting ? sk : `<div class="v">${hid(rub(due))}</div><span class="tag">садака</span>`;
   return `<div class="tiles">
     <button class="tile" data-go="income"><div class="k">Ближайшая выплата</div>${t1}</button>
     <button class="tile" data-go="income"><div class="k">К очищению</div>${t2}</button>
@@ -1039,7 +1048,7 @@ function cashHomeRow(t) {
   const d = cashDayChange();
   return `<button class="row" data-go="cash">
     <div class="main"><div class="title">Деньги</div><div class="sub">${n ? share + '% портфеля' : 'Наличные и счета'}</div></div>
-    <div class="right"><div>${rub(t.cash)}</div><div class="sub ${tone(d)}">${n && d ? signedRub(d) + ' за день' : ''}</div></div>
+    <div class="right"><div>${hid(rub(t.cash))}</div><div class="sub ${tone(d)}">${n && d ? hid(signedRub(d)) + ' за день' : ''}</div></div>
   </button>`;
 }
 
@@ -1058,7 +1067,7 @@ function cashRow(p, extra = '') {
   return `<button class="row${p.i === justAdded ? ' just-added' : ''}${extra}" data-go="cash-edit" data-pid="${esc(p.i)}">
     <span class="cash-ic" aria-hidden="true">${esc(cashSym(p.cur))}</span>
     <div class="main"><div class="title">${esc(p.n)}</div><div class="sub">${CASH_KIND[p.k] || ''}</div></div>
-    <div class="right"><div>${cashAmt(p.amt, p.cur)}</div><div class="sub">${p.cur === 'RUB' ? '' : r ? '≈ ' + rub(p.amt * r) : 'курс недоступен'}</div></div>
+    <div class="right"><div>${hid(cashAmt(p.amt, p.cur))}</div><div class="sub">${p.cur === 'RUB' ? '' : r ? '≈ ' + hid(rub(p.amt * r)) : 'курс недоступен'}</div></div>
   </button>`;
 }
 
@@ -1461,11 +1470,11 @@ const SCREENS = {
       <h1 style="margin-bottom:14px">Деньги</h1>
       ${hero(`
         <div class="hero-top"><span>Наличные и счета</span><span class="gold">по курсу ЦБ</span></div>
-        <div class="big mid num" id="sec-total">${rub(total)}</div>
+        <div class="big mid num" id="sec-total">${hid(rub(total))}</div>
         <div class="sub-line num">${!pf.cash.length
           ? 'Добавьте наличные или деньги на карте: они войдут в стоимость портфеля и в расчёт закята.'
           : hasForeign
-            ? (d ? `<span class="${tone(d)}">${signedRub(d)}</span> за день из-за курса` : 'Курс за день не изменился')
+            ? (d ? `<span class="${tone(d)}">${hid(signedRub(d))}</span> за день из-за курса` : 'Курс за день не изменился')
             : 'Всё в рублях: курс на сумму не влияет'}</div>
         ${bar}
       `)}
@@ -1518,16 +1527,16 @@ const SCREENS = {
       return `<button class="row" data-tab="${sec}">
         <div class="main"><div class="title">${SECTION_INFO[sec].title}</div><div class="sub">${pf[sec].length ? share + '% портфеля' : 'Нет позиций'}</div></div>
         ${pf[sec].length ? `<span class="spark" data-chart="spark" data-sec="${sec}" aria-hidden="true"></span>` : ''}
-        <div class="right"><div>${rub(st.value)}</div><div class="sub ${tone(st.pl)}">${pf[sec].length ? signedRub(st.pl) : ''}</div></div>
+        <div class="right"><div>${hid(rub(st.value))}</div><div class="sub ${tone(st.pl)}">${pf[sec].length ? hid(signedRub(st.pl)) : ''}</div></div>
       </button>`;
     }).join('') + cashHomeRow(t);
     return `
-      <div class="brandbar"><div class="logo">${STAR}<span>NAMA<em>.</em></span></div>${themeBtn()}</div>
+      <div class="brandbar"><div class="logo">${STAR}<span>NAMA<em>.</em></span></div><div class="bb-btns">${eyeBtn()}${themeBtn()}</div></div>
       ${hero(`
         <div class="hero-top"><span>Стоимость портфеля</span><span class="gold">${assetCountLabel()}</span></div>
-        <div class="big num" id="total">${rub(t.value)}</div>
+        <div class="big num" id="total">${hid(rub(t.value))}</div>
         <div class="sub-line num">${hasAny
-          ? `<span class="${tone(t.pl)}">${signedRub(t.pl)}${t.cost ? ' (' + pctOf(t.pl, t.cost) + ')' : ''}</span> за всё время${t.cash ? '<br>Из них деньги: ' + rub(t.cash) : ''}`
+          ? `<span class="${tone(t.pl)}">${hid(signedRub(t.pl))}${t.cost ? ' (' + pctOf(t.pl, t.cost) + ')' : ''}</span> за всё время${t.cash ? '<br>Из них деньги: ' + hid(rub(t.cash)) : ''}`
           : t.cash ? 'Пока только деньги. Откройте раздел внизу и добавьте первый актив.' : 'Откройте раздел внизу и добавьте свой первый актив.'}</div>
         ${hasAny ? `<div class="chart" data-chart="portfolio" data-h="96"></div>${periodSeg()}` : ''}
       `)}
@@ -1556,12 +1565,12 @@ const SCREENS = {
       </button>`).join('');
     return `
       ${backLink()}
-      <div class="brandbar"><h1 style="margin:0">${info.title}</h1>${themeBtn()}</div>
+      <div class="brandbar"><h1 style="margin:0">${info.title}</h1><div class="bb-btns">${eyeBtn()}${themeBtn()}</div></div>
       ${hero(`
         <div class="hero-top"><span>Стоимость раздела</span>${sec === 'crypto' ? curSwitch() : ''}</div>
-        <div class="big mid num" id="sec-total">${money(st.value, cu)}</div>
+        <div class="big mid num" id="sec-total">${hid(money(st.value, cu))}</div>
         <div class="sub-line num">${pf[sec].length
-          ? `<span class="${tone(st.pl)}">${signedMoney(st.pl, cu)}</span> за всё время`
+          ? `<span class="${tone(st.pl)}">${hid(signedMoney(st.pl, cu))}</span> за всё время`
           : 'Добавьте первую позицию: здесь появятся её стоимость и график.'}${sec === 'crypto' && usdRub ? `<br>Курс: 1 $ = ${rub(usdRub)}` : ''}</div>
         ${pf[sec].length ? `<div class="chart" data-chart="section" data-sec="${sec}" data-h="90"></div>${periodSeg()}` : ''}
       `)}
@@ -1638,9 +1647,7 @@ const SCREENS = {
   },
 
   other() {
-    const support = SUPPORT_USERNAME
-      ? `<button class="row" data-act="support"><div class="main"><div class="title">Поддержка</div><div class="sub">Чат с командой</div></div><span class="chev">›</span></button>`
-      : `<div class="row static"><div class="main"><div class="title">Поддержка</div></div><span class="hint">Скоро</span></div>`;
+    const support = `<button class="row" data-act="feedback"><div class="main"><div class="title">Написать разработчику</div><div class="sub">Вопрос, идея или что-то не работает</div></div><span class="chev">›</span></button>`;
     return `
       <div class="brandbar"><h1 style="margin:0">Другое</h1>${themeBtn()}</div>
       <h2>Халяль</h2>
@@ -1659,8 +1666,6 @@ const SCREENS = {
         <button class="row" data-go="passive"><div class="main"><div class="title">Пассивный доход</div><div class="sub">Когда выплаты покроют нужную сумму</div></div><span class="chev">›</span></button>
         <button class="row" data-go="income"><div class="main"><div class="title">Дивиденды и очищение</div><div class="sub">Выплаты по вашим бумагам и сумма на садака</div></div><span class="chev">›</span></button>
         <button class="row" data-go="zakat"><div class="main"><div class="title">Калькулятор закята</div><div class="sub">По нисабу золота или серебра</div></div><span class="chev">›</span></button>
-        <div class="row static"><div class="main"><div class="title">Привязка брокерского счёта</div></div><span class="hint">Скоро</span></div>
-        <div class="row static"><div class="main"><div class="title">Обменник</div></div><span class="hint">Скоро</span></div>
       </div>
       <h2>Связь</h2>
       <div class="group">${support}</div>
@@ -1836,9 +1841,9 @@ async function savePosition() {
   const name = asset ? asset.name : $('#f-name').value.trim();
   const q = num($('#f-q').value), b = num($('#f-b').value);
   let price = num($('#f-p').value);
-  if (!name) return alertMsg('Укажите название актива.');
-  if (!(q > 0)) return alertMsg('Укажите количество больше нуля.');
-  if (isNaN(b) || b < 0) return alertMsg('Укажите цену покупки.');
+  if (!name) return warn('Укажите название актива.');
+  if (!(q > 0)) return warn('Укажите количество больше нуля.');
+  if (isNaN(b) || b < 0) return warn('Укажите цену покупки.');
   if (isNaN(price) || price < 0) price = b;
   const fc = editCur(c);
   const live = asset ? livePrice(asset.id, fc) : null;
@@ -1944,7 +1949,7 @@ async function saveCash() {
   const c = cur();
   c.n = $('#f-cn').value.trim(); c.amt = $('#f-ca').value;
   const amt = num(c.amt);
-  if (!(amt > 0)) return alertMsg('Укажите сумму больше нуля.');
+  if (!(amt > 0)) return warn('Укажите сумму больше нуля.');
   const data = { n: c.n || cashDefaultName(c.k, c.cur), k: c.k, cur: c.cur, amt: round2(amt) };
   const before = JSON.stringify(pf.cash);
   const fromTotal = cashTotal();
@@ -2025,6 +2030,11 @@ const ACTIONS = {
     slideSeg(el, el.dataset.v === 'silver' ? 1 : 0, () => { zk.basis = el.dataset.v; render(false); });
   },
   theme: toggleTheme,
+  'hide-sums': toggleSums,
+  feedback: () => {
+    const url = 'https://t.me/' + BOT_USERNAME + '?start=feedback';
+    if (inTelegram && atLeast('6.1')) tg.openTelegramLink(url); else window.open(url, '_blank');
+  },
   onboard: () => showOnboarding(),
   'toggle-purified': el => {
     const k = el.dataset.k;
@@ -2092,12 +2102,17 @@ document.addEventListener('click', e => {
   if (!el) return;
   if (el.dataset.tab) return tab(el.dataset.tab);
   if (el.dataset.go) {
+    hapticTap();
     const params = Object.assign({}, el.dataset);
     delete params.go;
     return go(el.dataset.go, params);
   }
   const fn = ACTIONS[el.dataset.act];
-  if (fn) fn(el);
+  if (fn) {
+    // У переключателей и темы своя вибрация; остальным кнопкам — лёгкий отклик
+    if (el.tagName === 'BUTTON' && !el.closest('.seg') && !el.classList.contains('sw') && !['theme', 'hide-sums', 'back'].includes(el.dataset.act)) hapticTap();
+    fn(el);
+  }
 });
 
 document.addEventListener('input', e => {
@@ -2134,7 +2149,7 @@ document.addEventListener('change', e => {
   if (id) {
     const v = num(e.target.value);
     if (e.target.value.trim() === '') delete purifyPct[id];
-    else if (isNaN(v) || v < 0 || v > 100) { alertMsg('Введите процент от 0 до 100.'); return; }
+    else if (isNaN(v) || v < 0 || v > 100) { warn('Введите процент от 0 до 100.'); return; }
     else purifyPct[id] = v;
     storeSet('purify_pct', JSON.stringify(purifyPct));
     render(false);
@@ -2160,7 +2175,7 @@ function render(resetScroll = true, anim = null) {
   if (countFrom && countFrom.sec === c.name) {
     const el = $('#sec-total'), cu = dispCur(c.name);
     const to = c.name === 'cash' ? cashTotal() : secTotals(c.name, cu).value;
-    if (el) animateNumber(el, countFrom.from, to, v => money(v, cu), 900, 300);
+    if (el && !hideSums) animateNumber(el, countFrom.from, to, v => money(v, cu), 900, 300);
   }
   countFrom = null;
   if (justRemoved) {
@@ -2211,7 +2226,7 @@ function countTotal() {
   const from = shownTotal === null ? 0 : shownTotal;
   shownTotal = to;
   cancelAnimationFrame(countRaf);
-  if (from === to || reduceMotion()) { el.textContent = rub(to); return; }
+  if (from === to || reduceMotion() || hideSums) { el.textContent = hid(rub(to)); return; }
   const start = performance.now(), dur = from === 0 ? 1100 : 800;
   const step = now => {
     const k = Math.min(1, (now - start) / dur);
@@ -2676,11 +2691,12 @@ function drawChart(el, s, cu, animate) {
   const svg = el.querySelector('svg'), cross = svg.querySelector('.c-cross'), dot = svg.querySelector('.c-dot');
   const a = el.querySelector('.cm-a'), b = el.querySelector('.cm-b');
   const base = s.v[0];
+  const pv = el.dataset.chart === 'asset' ? (x => x) : hid;   // цена бумаги — не секрет, суммы портфеля — да
   svg.setAttribute('aria-label', P.word + ': ' + signedMoney(ch, cu) + (base ? ', ' + pctOf(ch, base) : ''));
 
   const idle = () => {
     a.className = 'cm-a hint'; a.textContent = P.word;
-    b.className = 'cm-b ' + tone(ch); b.textContent = signedMoney(ch, cu) + (base ? ' (' + pctOf(ch, base) + ')' : '');
+    b.className = 'cm-b ' + tone(ch); b.textContent = pv(signedMoney(ch, cu)) + (base ? ' (' + pctOf(ch, base) + ')' : '');
     cross.setAttribute('visibility', 'hidden');
     dot.setAttribute('cx', pts[n - 1][0]); dot.setAttribute('cy', pts[n - 1][1]);
   };
@@ -2690,7 +2706,7 @@ function drawChart(el, s, cu, animate) {
     const [x, y] = pts[idx];
     cross.setAttribute('x1', x); cross.setAttribute('x2', x); cross.setAttribute('visibility', 'visible');
     dot.setAttribute('cx', x); dot.setAttribute('cy', y);
-    a.className = 'cm-a strong'; a.textContent = money(s.v[idx], cu);
+    a.className = 'cm-a strong'; a.textContent = pv(money(s.v[idx], cu));
     b.className = 'cm-b hint'; b.textContent = fmtDate(s.t[idx], P.id === '1W' || P.id === '1M');
   };
   const indexAt = e => {
@@ -2776,6 +2792,20 @@ function toggleTheme() {
   } else render(false);
 }
 
+const ICON_EYE = '<svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+const ICON_EYE_OFF = '<svg viewBox="0 0 24 24"><path d="M10.6 5.1A10 10 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-2.6 3.4M6.6 6.6A17 17 0 0 0 2 12s3.6 7 10 7a9.7 9.7 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/><path d="M3 3l18 18"/></svg>';
+function eyeBtn() {
+  const label = hideSums ? 'Показать суммы' : 'Скрыть суммы';
+  return `<button class="icon-btn" data-act="hide-sums" aria-label="${label}" title="${label}" aria-pressed="${hideSums}">${hideSums ? ICON_EYE_OFF : ICON_EYE}</button>`;
+}
+function toggleSums() {
+  hideSums = !hideSums;
+  storeSet('hide_sums', hideSums ? '1' : '0');
+  hapticSelect();
+  if (cur().name === 'home') shownTotal = allTotals().value;   // без «докрутки» суммы с нуля
+  render(false);
+  document.querySelectorAll('[data-act="hide-sums"] svg').forEach(svg => svg.classList.add('spin'));
+}
 const ICON_MOON = '<svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>';
 const ICON_SUN = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
 
@@ -2927,7 +2957,7 @@ async function init() {
     ['safeAreaChanged', 'contentSafeAreaChanged', 'fullscreenChanged', 'viewportChanged']
       .forEach(ev => { try { tg.onEvent(ev, applyInsets); } catch (e) {} });
     try { if (atLeast('7.7')) tg.disableVerticalSwipes(); } catch (e) {}
-    if (atLeast('6.1')) tg.BackButton.onClick(back);
+    if (atLeast('6.1')) tg.BackButton.onClick(() => { hapticTap(); back(); });
     tg.onEvent('themeChanged', applyScheme);
   }
   splashHeader();
