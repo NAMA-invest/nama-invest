@@ -298,6 +298,39 @@
   /* ================= ФИРМЕННАЯ КАРТОЧКА ================= */
   .brandbar { display: flex; align-items: center; justify-content: space-between; margin: 2px 0 14px; }
   .bb-btns { display: flex; gap: 8px; }
+  /* ===== Главная: приветствие, день, значки разделов, лидеры дня, урок ===== */
+  .greet { margin: -4px 0 14px; }
+  .greet b { display: block; font-size: 22px; font-weight: 650; letter-spacing: -.3px; line-height: 1.25; }
+  .greet span { font-size: 13.5px; color: var(--hint); }
+  .greet em { font-style: normal; color: var(--gold); }
+  .day-pill { display: inline-flex; gap: 7px; align-items: center; background: rgba(255,255,255,.12); border-radius: 20px; padding: 4px 11px; font-size: 13px; margin-top: 9px; }
+  .day-pill i { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.6); }
+  .day-pill i.up { background: #9FE0C6; } .day-pill i.down { background: #F2A49D; }
+  .sec-ic { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .sec-ic svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .ic-sukuk { background: #E3EFEA; color: #0D4A3A; } .ic-stocks { background: #E6ECF6; color: #2E5B9A; }
+  .ic-crypto { background: #F6EEDC; color: #9A6B12; } .ic-cash { background: #EEF0E4; color: #5D6B2E; }
+  html[data-theme="dark"] .ic-sukuk { background: rgba(63,184,148,.14); color: #6FD0AF; }
+  html[data-theme="dark"] .ic-stocks { background: rgba(120,160,230,.14); color: #9DBBEB; }
+  html[data-theme="dark"] .ic-crypto { background: rgba(212,178,98,.15); color: #E0C27A; }
+  html[data-theme="dark"] .ic-cash { background: rgba(170,185,110,.14); color: #C3CF94; }
+  .movers { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .mv { background: var(--card); border-radius: 18px; padding: 12px 14px; box-shadow: var(--shadow); display: flex; gap: 10px; align-items: center;
+        border: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; width: 100%; transition: transform .12s var(--ease), background-color .4s ease; }
+  .mv:active { transform: scale(.98); }
+  .mv > div { min-width: 0; }
+  .mono { width: 36px; height: 36px; border-radius: 50%; background: var(--bg2); display: flex; align-items: center; justify-content: center; font-weight: 650; font-size: 14px; flex-shrink: 0; }
+  .mv .k { font-size: 12px; color: var(--hint); }
+  .mv .t { font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mv .p { font-size: 13px; font-weight: 600; }
+  .lesson-card { background: var(--card); border-radius: 18px; padding: 14px 16px; box-shadow: var(--shadow); display: flex; gap: 14px; align-items: center;
+        border: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; width: 100%; transition: transform .12s var(--ease), background-color .4s ease; }
+  .lesson-card:active { transform: scale(.98); }
+  .lesson-card .bk { width: 46px; height: 46px; border-radius: 14px; background: var(--brand); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .lesson-card .bk svg { width: 26px; height: 26px; fill: none; stroke: #E2C06A; stroke-width: 1.6; }
+  .lesson-card .k { font-size: 12px; color: var(--gold); font-weight: 600; letter-spacing: .3px; text-transform: uppercase; }
+  .lesson-card .t { font-weight: 600; margin-top: 2px; line-height: 1.3; }
+  .lesson-card .s { font-size: 13px; color: var(--hint); margin-top: 2px; }
   .logo { display: flex; align-items: center; gap: 8px; font-size: 20px; font-weight: 700; letter-spacing: .5px; }
   .logo svg { width: 22px; height: 22px; fill: none; stroke: var(--gold); stroke-width: 1.6; }
   .logo em { font-style: normal; color: var(--gold); }
@@ -514,7 +547,7 @@
 // =====================================================================
 
 // Номер версии — виден внизу раздела «Другое». Меняется при каждом обновлении.
-const APP_VERSION = '1.3';
+const APP_VERSION = '1.4';
 
 // Шариатский комитет — экран в разделе «Другое».
 // Пока список пуст, в приложении написано, что состав и заключения скоро появятся.
@@ -701,6 +734,7 @@ const money = (v, c = 'rub') => fmtAmt(v) + ' ' + SYM[c];
 const signedMoney = (v, c = 'rub') => sign(v) + nf.format(Math.abs(round2(v))) + ' ' + SYM[c];
 // «Скрыть суммы»: числа в деньгах заменяются точками, проценты остаются
 let hideSums = false;
+let lessonsDone = [];      // id прочитанных уроков: на главной предлагаем следующий
 // «Скрыть суммы»: число заменяется точками, знак валюты и «шт.» остаются, проценты не трогаем
 const hid = s => hideSums ? String(s).replace(/[−+]?\d(?:[\d\s\u00a0\u202f.,]*\d)?/g, '••••') : s;
 
@@ -750,6 +784,7 @@ async function loadAll() {
     }
   } catch (e) {}
   hideSums = (await storeGet('hide_sums')) === '1';
+  try { const v = JSON.parse(await storeGet('lessons_done')); if (Array.isArray(v)) lessonsDone = v; } catch (e) {}
   const t = await storeGet('theme');
   if (t === 'light' || t === 'dark') {
     themePref = t;
@@ -1021,6 +1056,94 @@ function assetCountLabel() {
 }
 const fmtShort = iso => new Date(iso + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
 
+// Значки разделов на главной
+const SEC_ICONS = {
+  sukuk: '<svg viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M10 12h5M10 16h5"/></svg>',
+  stocks: '<svg viewBox="0 0 24 24"><path d="M4 17l5-5 4 3 7-8"/><path d="M15 7h5v5"/></svg>',
+  crypto: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M10 8h3.2a2 2 0 0 1 0 4H10zm0 4h3.8a2 2 0 0 1 0 4H10zM10 7v10M11.5 6v2M11.5 16v2"/></svg>',
+  cash: '<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18M16 14.5h2"/></svg>',
+};
+
+// «Ассаляму алейкум, Имя» и дата: обычная и по хиджре (если телефон умеет исламский календарь)
+function hijriToday() {
+  try {
+    const f = new Intl.DateTimeFormat('ru-RU-u-ca-islamic-umalqura', { day: 'numeric', month: 'long', year: 'numeric' });
+    if (!/islamic/.test(f.resolvedOptions().calendar)) return '';
+    return f.format(new Date()).replace(/\s*(AH|г\. х\.)$/, '').replace(/(\d{4})$/, '$1 г.');
+  } catch (e) { return ''; }
+}
+function greeting() {
+  const u = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
+  const name = u && u.first_name ? ', ' + esc(u.first_name) : '';
+  let day = new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' });
+  day = day.charAt(0).toUpperCase() + day.slice(1);
+  const h = hijriToday();
+  return `<div class="greet"><b>Ассаляму алейкум${name}</b><span>${day}${h ? ' · <em>' + h + '</em>' : ''}</span></div>`;
+}
+
+// Изменение портфеля за сегодня: по дневным изменениям цен и курсу валют
+function dayChange() {
+  let d = 0, have = false;
+  for (const s of SECTIONS) for (const p of pf[s]) {
+    const ch = p.a ? changes[p.a] : undefined;
+    if (typeof ch !== 'number' || !livePrice(p.a)) continue;
+    const v = p.q * livePrice(p.a);
+    d += v - v / (1 + ch / 100); have = true;
+  }
+  const cd = cashDayChange();
+  if (cd) { d += cd; have = true; }
+  if (!have) return null;
+  const base = allTotals().value - d;
+  return { d, pct: base > 0 ? d / base * 100 : 0 };
+}
+function dayPill() {
+  const x = dayChange();
+  if (!x) return '';
+  const pct = sign(x.pct) + nf.format(Math.abs(round2(x.pct))) + '%';
+  return `<div class="day-pill num"><i class="${tone(x.d)}"></i>Сегодня ${Math.abs(x.d) < 1 ? 'без изменений' : hid(signedRub(Math.round(x.d))) + ' (' + pct + ')'}</div>`;
+}
+
+// «Сегодня на бирже»: какая из ваших бумаг выросла и упала сильнее всех
+function moversBlock() {
+  const seen = {}, list = [];
+  for (const s of SECTIONS) for (const p of pf[s]) {
+    const ch = p.a ? changes[p.a] : undefined;
+    if (typeof ch !== 'number' || seen[p.a]) continue;
+    seen[p.a] = 1;
+    const a = findAsset(s, p.a);
+    list.push({ sec: s, id: p.a, name: a ? shortName(a) : p.n, ch });
+  }
+  if (list.length < 2) return '';
+  list.sort((x, y) => y.ch - x.ch);
+  const best = list[0], worst = list[list.length - 1];
+  if (best.ch === worst.ch) return '';
+  const tile = (x, k) => `<button class="mv" data-go="asset" data-sec="${x.sec}" data-id="${esc(x.id)}">
+    <span class="mono" aria-hidden="true">${esc(x.name.charAt(0).toUpperCase())}</span>
+    <div><div class="k">${k}</div><div class="t">${esc(x.name)}</div><div class="p ${tone(x.ch)}">${sign(x.ch)}${nf.format(Math.abs(round2(x.ch)))}%</div></div>
+  </button>`;
+  return `<h2>Сегодня на бирже</h2><div class="movers">${tile(best, 'Лучше всех')}${tile(worst, 'Хуже всех')}</div>`;
+}
+
+// Следующий непрочитанный урок
+function lessonCard() {
+  const i = LESSONS.findIndex(l => !lessonsDone.includes(l.id));
+  if (i < 0) return '';
+  const l = LESSONS[i];
+  const m = String(l.body[0] || '').match(/^.*?[.!?](?=\s|$)/);
+  const first = m ? m[0] : String(l.body[0] || '');
+  const sub = first.length > 70 ? first.slice(0, 68).replace(/\s+\S*$/, '') + '…' : first;
+  return `<h2>Урок на 2 минуты</h2>
+    <button class="lesson-card" data-go="lesson" data-id="${l.id}">
+      <span class="bk" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12"/><rect x="6" y="6" width="12" height="12" transform="rotate(45 12 12)"/></svg></span>
+      <div><div class="k">Урок ${i + 1} из ${LESSONS.length}</div><div class="t">${esc(l.title)}</div><div class="s">${esc(sub)}</div></div>
+    </button>`;
+}
+function markLesson(id) {
+  if (!id || lessonsDone.includes(id)) return;
+  lessonsDone.push(id);
+  storeSet('lessons_done', JSON.stringify(lessonsDone));
+}
+
 function incomeTiles() {
   const { ev, loading } = incomeEvents();
   const next = ev.find(e => e.future && e.amount) || ev.find(e => e.future);
@@ -1047,6 +1170,7 @@ function cashHomeRow(t) {
   const share = t.value ? Math.round(t.cash / t.value * 100) : 0;
   const d = cashDayChange();
   return `<button class="row" data-go="cash">
+    <span class="sec-ic ic-cash" aria-hidden="true">${SEC_ICONS.cash}</span>
     <div class="main"><div class="title">Деньги</div><div class="sub">${n ? share + '% портфеля' : 'Наличные и счета'}</div></div>
     <div class="right"><div>${hid(rub(t.cash))}</div><div class="sub ${tone(d)}">${n && d ? hid(signedRub(d)) + ' за день' : ''}</div></div>
   </button>`;
@@ -1525,6 +1649,7 @@ const SCREENS = {
       const st = secTotals(sec);
       const share = t.value ? Math.round(st.value / t.value * 100) : 0;
       return `<button class="row" data-tab="${sec}">
+        <span class="sec-ic ic-${sec}" aria-hidden="true">${SEC_ICONS[sec]}</span>
         <div class="main"><div class="title">${SECTION_INFO[sec].title}</div><div class="sub">${pf[sec].length ? share + '% портфеля' : 'Нет позиций'}</div></div>
         ${pf[sec].length ? `<span class="spark" data-chart="spark" data-sec="${sec}" aria-hidden="true"></span>` : ''}
         <div class="right"><div>${hid(rub(st.value))}</div><div class="sub ${tone(st.pl)}">${pf[sec].length ? hid(signedRub(st.pl)) : ''}</div></div>
@@ -1532,17 +1657,21 @@ const SCREENS = {
     }).join('') + cashHomeRow(t);
     return `
       <div class="brandbar"><div class="logo">${STAR}<span>NAMA<em>.</em></span></div><div class="bb-btns">${eyeBtn()}${themeBtn()}</div></div>
+      ${greeting()}
       ${hero(`
         <div class="hero-top"><span>Стоимость портфеля</span><span class="gold">${assetCountLabel()}</span></div>
         <div class="big num" id="total">${hid(rub(t.value))}</div>
         <div class="sub-line num">${hasAny
           ? `<span class="${tone(t.pl)}">${hid(signedRub(t.pl))}${t.cost ? ' (' + pctOf(t.pl, t.cost) + ')' : ''}</span> за всё время${t.cash ? '<br>Из них деньги: ' + hid(rub(t.cash)) : ''}`
           : t.cash ? 'Пока только деньги. Откройте раздел внизу и добавьте первый актив.' : 'Откройте раздел внизу и добавьте свой первый актив.'}</div>
+        ${dayPill()}
         ${hasAny ? `<div class="chart" data-chart="portfolio" data-h="96"></div>${periodSeg()}` : ''}
       `)}
       <h2>Разделы</h2>
       <div class="group">${rows}</div>
+      ${moversBlock()}
       ${hasIncomeAssets() ? `<h2>Доходы</h2>${incomeTiles()}` : ''}
+      ${lessonCard()}
       <p class="note">${priceStatus()}</p>
       ${disclaimer}`;
   },
@@ -1764,7 +1893,7 @@ const SCREENS = {
       <h1>Уроки</h1>
       <div class="group" style="margin-top:16px">
         ${LESSONS.map((l, i) => `<button class="row" data-go="lesson" data-id="${l.id}">
-          <div class="main"><div class="sub">Урок ${i + 1}</div><div class="title">${esc(l.title)}</div></div><span class="chev">›</span>
+          <div class="main"><div class="sub">Урок ${i + 1}${lessonsDone.includes(l.id) ? ' · прочитан' : ''}</div><div class="title">${esc(l.title)}</div></div><span class="chev">›</span>
         </button>`).join('')}
       </div>`;
   },
@@ -1773,6 +1902,7 @@ const SCREENS = {
     const idx = LESSONS.findIndex(l => l.id === c.id);
     const l = LESSONS[idx];
     if (!l) return backLink() + '<p>Урок не найден.</p>';
+    markLesson(l.id);
     const next = LESSONS[idx + 1];
     return `
       ${backLink()}
