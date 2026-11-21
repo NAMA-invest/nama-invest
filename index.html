@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  /* ===== Фирменные цвета NAMA: изумруд и золото ===== */
+  /* ===== Фирменные цвета NAMA: лесной зелёный и золото на светлом фоне ===== */
   :root, html[data-theme="light"] {
     --bg: #F3F4F1;          /* фон страницы */
     --card: #FFFFFF;        /* карточки */
@@ -17,9 +17,9 @@
     --text: #141614;
     --hint: #747974;
     --line: rgba(0, 0, 0, .07);
-    --brand: #0D4A3A;       /* изумруд */
-    --brand-2: #0B3F31;
-    --gold: #B8913A;        /* золото — только для акцентов */
+    --brand: #182E21;       /* лесной зелёный */
+    --brand-2: #13261B;
+    --gold: #A98234;        /* золото — только для акцентов */
     --up: #127A61;
     --down: #B8443C;
     --warn: #93670F;
@@ -32,8 +32,8 @@
     --text: #ECEDEB;
     --hint: #8F9490;
     --line: rgba(255, 255, 255, .07);
-    --brand: #0F4F3E;
-    --brand-2: #0C4334;
+    --brand: #1F3B2B;
+    --brand-2: #1A3224;
     --gold: #D4B262;
     --up: #3FB894;
     --down: #E0675F;
@@ -291,38 +291,81 @@
   @keyframes fade-in { from { opacity: 0; } }
   .seg-period { margin-bottom: 4px; }
   .seg-period button { padding: 6px; font-size: 14px; }
-  .spark { width: 56px; height: 26px; flex-shrink: 0; color: var(--hint); }
-  .spark svg { display: block; width: 56px; height: 26px; overflow: visible; }
-  .spark .c-line { stroke-width: 1.6; }
+  .spark { width: 64px; height: 30px; flex-shrink: 0; color: var(--hint); }
+  .spark svg { display: block; width: 64px; height: 30px; overflow: visible; }
+  .spark .c-line { stroke-width: 1.8; }
+  .row[data-tab] .main .title, .row[data-tab] .main .sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  @media (max-width: 389px) { .spark, .spark svg { width: 46px; } .row[data-tab], .row[data-go="cash"] { gap: 10px; } }
 
   /* ================= ФИРМЕННАЯ КАРТОЧКА ================= */
   .brandbar { display: flex; align-items: center; justify-content: space-between; margin: 2px 0 14px; }
   .bb-btns { display: flex; gap: 8px; }
   /* ===== Главная: приветствие, день, значки разделов, лидеры дня, урок ===== */
-  .greet { margin: -4px 0 14px; }
+  .greet { margin: -8px 0 14px; }
   .greet b { display: block; font-size: 22px; font-weight: 650; letter-spacing: -.3px; line-height: 1.25; }
   .greet span { font-size: 13.5px; color: var(--hint); }
   .greet em { font-style: normal; color: var(--gold); }
   .day-pill { display: inline-flex; gap: 7px; align-items: center; background: rgba(255,255,255,.12); border-radius: 20px; padding: 4px 11px; font-size: 13px; margin-top: 9px; }
   .day-pill i { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.6); }
   .day-pill i.up { background: #9FE0C6; } .day-pill i.down { background: #F2A49D; }
-  .sec-ic { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-  .sec-ic svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-  .ic-sukuk { background: #E3EFEA; color: #0D4A3A; } .ic-stocks { background: #E6ECF6; color: #2E5B9A; }
-  .ic-crypto { background: #F6EEDC; color: #9A6B12; } .ic-cash { background: #EEF0E4; color: #5D6B2E; }
-  html[data-theme="dark"] .ic-sukuk { background: rgba(63,184,148,.14); color: #6FD0AF; }
-  html[data-theme="dark"] .ic-stocks { background: rgba(120,160,230,.14); color: #9DBBEB; }
-  html[data-theme="dark"] .ic-crypto { background: rgba(212,178,98,.15); color: #E0C27A; }
-  html[data-theme="dark"] .ic-cash { background: rgba(170,185,110,.14); color: #C3CF94; }
+  .sec-ic { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 2px 6px rgba(24,46,33,.14); }
+  .sec-ic svg { width: 22px; height: 22px; }
+  .sec-ic .f { fill: #fff; } .sec-ic .f2 { fill: rgba(255,255,255,.55); }
+  .sec-ic .s { stroke: #fff; stroke-width: 1.6; stroke-linecap: round; fill: none; }
+  .sec-ic .s2 { stroke: rgba(255,255,255,.55); stroke-width: 1.6; stroke-linecap: round; fill: none; }
+  .sec-ic .cut { fill: var(--cut); }
+  .sec-ic .cutl { stroke: var(--cut); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+  .sec-ic { box-shadow: none !important; }
+  .sec-ic .f { fill: currentColor; } .sec-ic .f2 { fill: currentColor; opacity: .4; }
+  .sec-ic .s { stroke: currentColor; } .sec-ic .s2 { stroke: currentColor; opacity: .4; }
+  .ic-sukuk { background: #E8EEE9; color: #182E21; --cut: #E8EEE9; }
+  .ic-stocks { background: #E9EDF1; color: #33495B; --cut: #E9EDF1; }
+  .ic-crypto { background: #F4EDDC; color: #A0782A; --cut: #F4EDDC; }
+  .ic-cash { background: #EEEDE6; color: #6A6349; --cut: #EEEDE6; }
+  html[data-theme="dark"] .ic-sukuk { background: #233128; color: #8FC3A2; --cut: #233128; }
+  html[data-theme="dark"] .ic-stocks { background: #252D34; color: #9DB4C7; --cut: #252D34; }
+  html[data-theme="dark"] .ic-crypto { background: #332C1D; color: #E0C27A; --cut: #332C1D; }
+  html[data-theme="dark"] .ic-cash { background: #2D2B24; color: #C9C0A0; --cut: #2D2B24; }
+  html[data-theme="dark"] .wh-date.div { background: #252D34; color: #9DB4C7; }
+  html[data-theme="dark"] .wh-date.cpn { background: #233128; color: #8FC3A2; }
   .movers { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .mv { background: var(--card); border-radius: 18px; padding: 12px 14px; box-shadow: var(--shadow); display: flex; gap: 10px; align-items: center;
         border: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; width: 100%; transition: transform .12s var(--ease), background-color .4s ease; }
   .mv:active { transform: scale(.98); }
   .mv > div { min-width: 0; }
-  .mono { width: 36px; height: 36px; border-radius: 50%; background: var(--bg2); display: flex; align-items: center; justify-content: center; font-weight: 650; font-size: 14px; flex-shrink: 0; }
+  .mono { position: relative; width: 36px; height: 36px; border-radius: 50%; background: var(--bg2); display: flex; align-items: center; justify-content: center; font-weight: 650; font-size: 14px; flex-shrink: 0; overflow: hidden; }
+  .mono img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 50%; background: #fff; }
   .mv .k { font-size: 12px; color: var(--hint); }
   .mv .t { font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .mv .p { font-size: 13px; font-weight: 600; }
+  .pay-row { gap: 12px; }
+  .pay-row .wh-main, .pay-row .wh-amt { display: flex; flex-direction: column; }
+  .pay-row.past .wh-date { background: var(--bg2); color: var(--hint); }
+  .pay-row.past .wh-amt .v { color: var(--text); }
+  .h2row { display: flex; align-items: baseline; justify-content: space-between; }
+  .h2link { background: none; border: 0; font: inherit; font-size: 14px; color: var(--gold); font-weight: 600; cursor: pointer; padding: 0 2px; }
+  .wheel-card { position: relative; background: var(--card); border-radius: 20px; box-shadow: var(--shadow); height: 206px; overflow: hidden; }
+  .wh-empty { display: flex; flex-direction: column; justify-content: center; gap: 6px; padding: 0 22px; border: 0; width: 100%; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+  .wh-empty span { font-size: 13.5px; color: var(--hint); line-height: 1.45; }
+  .wh-band { position: absolute; left: 10px; right: 10px; top: 74px; height: 58px; border-radius: 14px; background: var(--bg2); opacity: .55; pointer-events: none; }
+  .wheel { position: relative; height: 100%; overflow-y: auto; scroll-snap-type: y mandatory; overscroll-behavior: contain; scrollbar-width: none;
+           -webkit-mask-image: linear-gradient(transparent, #000 30%, #000 70%, transparent); mask-image: linear-gradient(transparent, #000 30%, #000 70%, transparent); }
+  .wheel::-webkit-scrollbar { display: none; }
+  .wh-item { display: flex; align-items: center; gap: 12px; width: 100%; height: 58px; padding: 0 22px; scroll-snap-align: center; border: 0; background: none;
+             font: inherit; color: inherit; text-align: left; cursor: pointer; will-change: transform, opacity; }
+  .wh-date { width: 40px; height: 40px; border-radius: 11px; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; line-height: 1; }
+  .wh-date b { font-size: 16px; font-weight: 700; } .wh-date span { font-size: 10.5px; margin-top: 2px; text-transform: lowercase; }
+  .wh-date.div { background: #E9EDF1; color: #33495B; }
+  .wh-date.cpn { background: #E8EEE9; color: #182E21; }
+  .wh-item.past .wh-date { background: var(--bg2); color: var(--hint); }
+  .wh-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .wh-main .t { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wh-main .s, .wh-amt .s { font-size: 12.5px; color: var(--hint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wh-amt { display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; }
+  .wh-amt .v { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .wh-item.past .wh-amt .v { color: var(--hint); }
+  .wh-note { font-size: 12.5px; color: var(--hint); margin: 8px 4px 0; }
   .lesson-card { background: var(--card); border-radius: 18px; padding: 14px 16px; box-shadow: var(--shadow); display: flex; gap: 14px; align-items: center;
         border: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; width: 100%; transition: transform .12s var(--ease), background-color .4s ease; }
   .lesson-card:active { transform: scale(.98); }
@@ -457,11 +500,11 @@
 
   /* ===== Заставка при запуске (не дольше загрузки, минимум ~1 с) ===== */
   #splash {
-    position: fixed; inset: 0; z-index: 200; background: #0D4A3A;
+    position: fixed; inset: 0; z-index: 200; background: #182E21;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
     transition: opacity .45s ease, visibility .45s ease;
   }
-  html[data-theme="dark"] #splash { background: #0F4F3E; }
+  html[data-theme="dark"] #splash { background: #1F3B2B; }
   #splash.hide { opacity: 0; visibility: hidden; }
   #splash .sp-in { display: flex; flex-direction: column; align-items: center; gap: 18px; transition: transform .45s var(--ease); }
   #splash.hide .sp-in { transform: scale(1.06); }
@@ -547,7 +590,7 @@
 // =====================================================================
 
 // Номер версии — виден внизу раздела «Другое». Меняется при каждом обновлении.
-const APP_VERSION = '1.4';
+const APP_VERSION = '1.9';
 
 // Шариатский комитет — экран в разделе «Другое».
 // Пока список пуст, в приложении написано, что состав и заключения скоро появятся.
@@ -941,6 +984,11 @@ async function refreshPrices() {
 }
 const flashCls = id => (flashes[id] ? 'flash-' + flashes[id] : '');
 
+// Внизу страниц — только если с ценами что-то не так
+function priceAlert() {
+  if (!pricesAt || !(priceErr.moex || priceErr.cg)) return '';
+  return `<p class="note">${priceStatus()}</p>`;
+}
 function priceStatus() {
   if (!pricesAt) return 'Загружаем цены…';
   if (priceErr.moex && priceErr.cg) return 'Не удалось загрузить цены. Показаны последние сохранённые.';
@@ -1003,14 +1051,24 @@ function tab(name, anim = 'tab') {
 
 // ---------- общие куски разметки ----------
 const backLink = () => (!inTelegram && stack.length > 1) ? '<button class="back" data-act="back">Назад</button>' : '';
-const disclaimer = '<p class="note">Информация носит образовательный характер и не является индивидуальной инвестиционной рекомендацией.</p>';
+const DISCLAIMER = 'Информация носит образовательный характер и не является индивидуальной инвестиционной рекомендацией.';
+const disclaimer = '';   // раньше стояла внизу каждой страницы; теперь один раз — в «Другом»
 const chip = st => `<span class="chip ${st}">${STATUS[st]}</span>`;
 
+// Эмблема бумаги: картинка logos/<id>.png из репозитория, если вы её положили; иначе — кружок с первой буквой
+const logoMiss = new Set();
+function logoFail(img, id) { logoMiss.add(id); img.remove(); }
+function mono(name, id) {
+  const letter = esc(String(name || '?').trim().charAt(0).toUpperCase());
+  const img = id && !logoMiss.has(id) ? `<img src="logos/${encodeURIComponent(id)}.png" alt="" loading="lazy" onerror="logoFail(this, '${esc(id)}')">` : '';
+  return `<span class="mono" aria-hidden="true">${letter}${img}</span>`;
+}
 function positionRow(sec, p) {
   const c = dispCur(sec);
   const price = priceOf(p, c);
   const value = p.q * price, pl = value - p.q * costOf(p, c);
   return `<button class="row${p.i === justAdded ? ' just-added' : ''}" data-go="edit" data-sec="${sec}" data-pid="${esc(p.i)}">
+    ${mono(p.n, p.a)}
     <div class="main"><div class="title">${esc(p.n)}</div><div class="sub num">${hid(nf.format(p.q) + ' шт.')} по <span class="${p.a ? flashCls(p.a) : ''}">${money(price, c)}</span>${p.a ? changeHtml(p.a, c) : ''}</div></div>
     <div class="right"><div>${hid(money(value, c))}</div><div class="sub ${tone(pl)}">${hid(signedMoney(pl, c))}</div></div>
   </button>`;
@@ -1058,27 +1116,17 @@ const fmtShort = iso => new Date(iso + 'T12:00:00').toLocaleDateString('ru-RU', 
 
 // Значки разделов на главной
 const SEC_ICONS = {
-  sukuk: '<svg viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M10 12h5M10 16h5"/></svg>',
-  stocks: '<svg viewBox="0 0 24 24"><path d="M4 17l5-5 4 3 7-8"/><path d="M15 7h5v5"/></svg>',
-  crypto: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M10 8h3.2a2 2 0 0 1 0 4H10zm0 4h3.8a2 2 0 0 1 0 4H10zM10 7v10M11.5 6v2M11.5 16v2"/></svg>',
-  cash: '<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18M16 14.5h2"/></svg>',
+ 'sukuk': '<svg viewBox="0 0 24 24"><path d="M6.2 2.8h8.3l4.3 4.3v8.1a5 5 0 0 0-6.6 6.1H6.2a1.6 1.6 0 0 1-1.6-1.6V4.4a1.6 1.6 0 0 1 1.6-1.6z" class="f"/><path d="M8 9.2h6.4M8 12.4h4.4" class="cutl"/><circle cx="17.3" cy="18.2" r="3.4" class="f"/><path d="M15.9 18.2l1 1 1.8-2" class="cutl"/></svg>',
+ 'stocks': '<svg viewBox="0 0 24 24"><rect x="4" y="10" width="3.6" height="9" rx="1" class="f2"/><path d="M5.8 7v3M5.8 19v2" class="s2"/><rect x="10.2" y="6" width="3.6" height="9" rx="1" class="f"/><path d="M12 3v3M12 15v3" class="s"/><rect x="16.4" y="8.5" width="3.6" height="7" rx="1" class="f"/><path d="M18.2 5.5v3M18.2 15.5v2.5" class="s"/></svg>',
+ 'crypto': '<svg viewBox="0 0 24 24"><path d="M12 2.5l8.2 4.75v9.5L12 21.5l-8.2-4.75v-9.5z" class="f"/><path d="M12 7.2l4.2 2.4v4.8L12 16.8l-4.2-2.4V9.6z" class="cut"/></svg>',
+ 'cash': '<svg viewBox="0 0 24 24"><rect x="2.8" y="6.2" width="18.4" height="13" rx="3.2" class="f"/><path d="M5.5 6.2 15.6 3.3a1.6 1.6 0 0 1 2 1.1l.5 1.8" class="s"/><rect x="14.6" y="10.8" width="6.6" height="4" rx="2" class="cut"/><circle cx="16.9" cy="12.8" r=".9" class="f"/></svg>',
 };
 
-// «Ассаляму алейкум, Имя» и дата: обычная и по хиджре (если телефон умеет исламский календарь)
-function hijriToday() {
-  try {
-    const f = new Intl.DateTimeFormat('ru-RU-u-ca-islamic-umalqura', { day: 'numeric', month: 'long', year: 'numeric' });
-    if (!/islamic/.test(f.resolvedOptions().calendar)) return '';
-    return f.format(new Date()).replace(/\s*(AH|г\. х\.)$/, '').replace(/(\d{4})$/, '$1 г.');
-  } catch (e) { return ''; }
-}
+// Дата под логотипом
 function greeting() {
-  const u = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
-  const name = u && u.first_name ? ', ' + esc(u.first_name) : '';
   let day = new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' });
   day = day.charAt(0).toUpperCase() + day.slice(1);
-  const h = hijriToday();
-  return `<div class="greet"><b>Ассаляму алейкум${name}</b><span>${day}${h ? ' · <em>' + h + '</em>' : ''}</span></div>`;
+  return `<div class="greet"><span>${day}</span></div>`;
 }
 
 // Изменение портфеля за сегодня: по дневным изменениям цен и курсу валют
@@ -1118,7 +1166,7 @@ function moversBlock() {
   const best = list[0], worst = list[list.length - 1];
   if (best.ch === worst.ch) return '';
   const tile = (x, k) => `<button class="mv" data-go="asset" data-sec="${x.sec}" data-id="${esc(x.id)}">
-    <span class="mono" aria-hidden="true">${esc(x.name.charAt(0).toUpperCase())}</span>
+    ${mono(x.name, x.id)}
     <div><div class="k">${k}</div><div class="t">${esc(x.name)}</div><div class="p ${tone(x.ch)}">${sign(x.ch)}${nf.format(Math.abs(round2(x.ch)))}%</div></div>
   </button>`;
   return `<h2>Сегодня на бирже</h2><div class="movers">${tile(best, 'Лучше всех')}${tile(worst, 'Хуже всех')}</div>`;
@@ -1142,6 +1190,59 @@ function markLesson(id) {
   if (!id || lessonsDone.includes(id)) return;
   lessonsDone.push(id);
   storeSet('lessons_done', JSON.stringify(lessonsDone));
+}
+
+// ---------- «Выплаты»: колесо с дивидендами и купонами ----------
+// Вверх — прошедшие за год, вниз — будущие. В центре — ближайшая будущая выплата.
+const WH_ITEM = 58, WH_H = 206;
+let wheelPos = null;      // где пользователь оставил колесо (чтобы обновление цен его не сбрасывало)
+function payoutWheel() {
+  const { ev, loading } = incomeEvents();
+  const head = `<div class="h2row"><h2>Выплаты</h2><button class="h2link" data-go="income">Все ›</button></div>`;
+  if (loading && !ev.length) return head + `<div class="wheel-card"><span class="skel" style="width:70%;height:18px;margin:94px auto;display:block"></span></div>`;
+  if (!ev.length) return head + `<button class="wheel-card wh-empty" data-go="income"><b>Объявленных выплат пока нет</b><span>Дивиденды появляются здесь, когда компания их объявит. Купоны по сукуку — по графику.</span></button>`;
+  let start = ev.findIndex(e => e.future);
+  if (start < 0) start = ev.length - 1;
+  const items = ev.map((e, i) => `<button class="wh-item${e.future ? '' : ' past'}" data-go="asset" data-sec="${e.sec}" data-id="${esc(e.a.id)}" data-i="${i}">${payInner(e)}</button>`).join('');
+  return head + `<div class="wheel-card"><div class="wh-band" aria-hidden="true"></div>
+    <div class="wheel" data-start="${start}" role="list" aria-label="Выплаты: прокрутите вверх или вниз">${items}</div></div>
+    <p class="wh-note">До налога 13% · вверх — прошедшие, вниз — будущие</p>`;
+}
+// Содержимое строки выплаты — одно и то же в колесе и в списке «Выплаты»
+function payInner(e) {
+  const today = new Date(isoDay(new Date()) + 'T12:00:00');
+  const d = new Date(e.date + 'T12:00:00');
+  const days = Math.round((d - today) / 86400000);
+  const when = !e.future ? (e.kind === 'div' ? 'отсечка прошла' : 'выплачен') : days === 0 ? 'сегодня' : days === 1 ? 'завтра' : 'через ' + days + ' ' + plural(days, 'день', 'дня', 'дней');
+  const isDiv = e.kind === 'div';
+  const approx = e.future ? '≈ ' : '';
+  return `<span class="wh-date ${isDiv ? 'div' : 'cpn'}"><b>${d.getDate()}</b><span>${d.toLocaleDateString('ru-RU', { month: 'short' }).replace('.', '')}</span></span>
+    <span class="wh-main"><span class="t">${esc(shortName(e.a))}</span><span class="s">${isDiv ? 'Дивиденд' : 'Купон'}${e.per ? ' · ' + rub(e.per) + (isDiv ? ' на акцию' : ' на бумагу') : ''}</span></span>
+    <span class="wh-amt"><span class="v">${e.amount ? approx + hid(rub(Math.round(e.amount))) : 'не объявл.'}</span><span class="s">${when}</span></span>`;
+}
+function mountWheel() {
+  const w = app.querySelector('.wheel');
+  if (!w) return;
+  const items = [...w.querySelectorAll('.wh-item')];
+  const pad = (WH_H - WH_ITEM) / 2;
+  w.style.paddingTop = w.style.paddingBottom = pad + 'px';
+  w.scrollTop = wheelPos != null ? wheelPos : (+w.dataset.start || 0) * WH_ITEM;
+  let last = -1, raf = 0;
+  const paint = () => {
+    raf = 0;
+    const c = w.scrollTop / WH_ITEM;
+    items.forEach((el, i) => {
+      const d = i - c, a = Math.min(Math.abs(d), 2.4);
+      el.style.transform = `perspective(500px) rotateX(${(-d * 22).toFixed(1)}deg) scale(${(1 - a * 0.07).toFixed(3)})`;
+      el.style.opacity = (1 - a * 0.36).toFixed(2);
+    });
+    const idx = Math.round(c);
+    if (last !== -1 && idx !== last) hapticSelect();
+    last = idx;
+    wheelPos = w.scrollTop;
+  };
+  w.addEventListener('scroll', () => { if (!raf) raf = requestAnimationFrame(paint); }, { passive: true });
+  paint();
 }
 
 function incomeTiles() {
@@ -1652,7 +1753,7 @@ const SCREENS = {
         <span class="sec-ic ic-${sec}" aria-hidden="true">${SEC_ICONS[sec]}</span>
         <div class="main"><div class="title">${SECTION_INFO[sec].title}</div><div class="sub">${pf[sec].length ? share + '% портфеля' : 'Нет позиций'}</div></div>
         ${pf[sec].length ? `<span class="spark" data-chart="spark" data-sec="${sec}" aria-hidden="true"></span>` : ''}
-        <div class="right"><div>${hid(rub(st.value))}</div><div class="sub ${tone(st.pl)}">${pf[sec].length ? hid(signedRub(st.pl)) : ''}</div></div>
+        <div class="right"><div>${hid(rub(Math.round(st.value)))}</div><div class="sub ${tone(st.pl)}">${pf[sec].length ? hid(signedRub(Math.round(st.pl))) : ''}</div></div>
       </button>`;
     }).join('') + cashHomeRow(t);
     return `
@@ -1660,9 +1761,9 @@ const SCREENS = {
       ${greeting()}
       ${hero(`
         <div class="hero-top"><span>Стоимость портфеля</span><span class="gold">${assetCountLabel()}</span></div>
-        <div class="big num" id="total">${hid(rub(t.value))}</div>
+        <div class="big num" id="total">${hid(rub(Math.round(t.value)))}</div>
         <div class="sub-line num">${hasAny
-          ? `<span class="${tone(t.pl)}">${hid(signedRub(t.pl))}${t.cost ? ' (' + pctOf(t.pl, t.cost) + ')' : ''}</span> за всё время${t.cash ? '<br>Из них деньги: ' + hid(rub(t.cash)) : ''}`
+          ? `<span class="${tone(t.pl)}">${hid(signedRub(Math.round(t.pl)))}${t.cost ? ' (' + pctOf(t.pl, t.cost) + ')' : ''}</span> за всё время${t.cash ? '<br>Из них деньги: ' + hid(rub(t.cash)) : ''}`
           : t.cash ? 'Пока только деньги. Откройте раздел внизу и добавьте первый актив.' : 'Откройте раздел внизу и добавьте свой первый актив.'}</div>
         ${dayPill()}
         ${hasAny ? `<div class="chart" data-chart="portfolio" data-h="96"></div>${periodSeg()}` : ''}
@@ -1670,9 +1771,9 @@ const SCREENS = {
       <h2>Разделы</h2>
       <div class="group">${rows}</div>
       ${moversBlock()}
-      ${hasIncomeAssets() ? `<h2>Доходы</h2>${incomeTiles()}` : ''}
+      ${hasIncomeAssets() ? payoutWheel() : ''}
       ${lessonCard()}
-      <p class="note">${priceStatus()}</p>
+      ${priceAlert()}
       ${disclaimer}`;
   },
 
@@ -1689,8 +1790,9 @@ const SCREENS = {
     const mine = rowsHtml.length ? rowsHtml.join('') : '<div class="empty">Здесь появятся ваши активы.</div>';
     const catalog = CATALOG[sec].map(a => `
       <button class="row" data-go="asset" data-sec="${sec}" data-id="${a.id}">
-        <div class="main"><div class="title">${esc(a.name)}</div><div class="sub">${esc(sec === 'sukuk' ? a.sector : (a.ticker ? a.ticker + ', ' + a.sector : a.sector))}</div></div>
-        <div class="right-stack">${priceLine(a.id, cu)}${chip(a.status)}</div>
+        ${mono(a.name, a.id)}
+        <div class="main"><div class="title">${esc(a.name)}</div><div class="sub">${esc(sec === 'sukuk' ? a.sector : (a.ticker || a.sector))}</div></div>
+        <div class="right-stack">${priceLine(a.id, cu)}${a.status !== 'ok' && sec !== 'crypto' ? chip(a.status) : ''}</div>
       </button>`).join('');
     return `
       ${backLink()}
@@ -1708,8 +1810,7 @@ const SCREENS = {
       <button class="btn" data-go="edit" data-sec="${sec}">Добавить актив</button>
       <h2>Халяльные активы</h2>
       <div class="group">${catalog}</div>
-      <p class="note">${info.note} Статусы подтверждает шариатский комитет NAMA.</p>
-      <p class="note">${priceStatus()}</p>
+      ${priceAlert()}
       ${disclaimer}`;
   },
 
@@ -1776,33 +1877,58 @@ const SCREENS = {
   },
 
   other() {
-    const support = `<button class="row" data-act="feedback"><div class="main"><div class="title">Написать разработчику</div><div class="sub">Вопрос, идея или что-то не работает</div></div><span class="chev">›</span></button>`;
+    const support = `<button class="row" data-act="feedback"><div class="main"><div class="title">Написать разработчику</div></div><span class="chev">›</span></button>`;
     return `
       <div class="brandbar"><h1 style="margin:0">Другое</h1>${themeBtn()}</div>
       <h2>Халяль</h2>
       <div class="group">
-        <button class="row" data-go="committee"><div class="main"><div class="title">Шариатский комитет</div><div class="sub">Кто и как проверяет активы</div></div><span class="chev">›</span></button>
+        <button class="row" data-go="committee"><div class="main"><div class="title">Шариатский комитет</div></div><span class="chev">›</span></button>
       </div>
       <h2>Обучение</h2>
       <div class="group">
-        <button class="row" data-act="onboard"><div class="main"><div class="title">Знакомство с NAMA</div><div class="sub">Как устроено приложение</div></div><span class="chev">›</span></button>
-        <button class="row" data-go="lessons"><div class="main"><div class="title">Уроки</div><div class="sub">${LESSONS.length} коротких уроков</div></div><span class="chev">›</span></button>
-        <button class="row" data-go="guide"><div class="main"><div class="title">Как открыть брокерский счёт</div><div class="sub">Пошаговая инструкция</div></div><span class="chev">›</span></button>
+        <button class="row" data-go="lessons"><div class="main"><div class="title">Уроки</div></div><span class="chev">›</span></button>
+        <button class="row" data-go="guide"><div class="main"><div class="title">Как открыть брокерский счёт</div></div><span class="chev">›</span></button>
       </div>
       <h2>Инструменты</h2>
       <div class="group">
-        ${ACCESS_URL ? `<button class="row" data-go="report"><div class="main"><div class="title">Отчёт в Telegram</div><div class="sub">${reportCfg.enabled ? 'Включён · ' + REP_FREQ[reportCfg.freq].toLowerCase() + ' в ' + hh(reportCfg.hour) : 'Итог дня от бота: портфель, отсечки, очищение'}</div></div><span class="chev">›</span></button>` : ''}
-        <button class="row" data-go="passive"><div class="main"><div class="title">Пассивный доход</div><div class="sub">Когда выплаты покроют нужную сумму</div></div><span class="chev">›</span></button>
-        <button class="row" data-go="income"><div class="main"><div class="title">Дивиденды и очищение</div><div class="sub">Выплаты по вашим бумагам и сумма на садака</div></div><span class="chev">›</span></button>
-        <button class="row" data-go="zakat"><div class="main"><div class="title">Калькулятор закята</div><div class="sub">По нисабу золота или серебра</div></div><span class="chev">›</span></button>
+        ${ACCESS_URL ? `<button class="row" data-go="report"><div class="main"><div class="title">Отчёт в Telegram</div>${reportCfg.enabled ? '<div class="sub">Включён · ' + REP_FREQ[reportCfg.freq].toLowerCase() + ' в ' + hh(reportCfg.hour) + '</div>' : ''}</div><span class="chev">›</span></button>` : ''}
+        <button class="row" data-go="passive"><div class="main"><div class="title">Пассивный доход</div></div><span class="chev">›</span></button>
+        <button class="row" data-go="income"><div class="main"><div class="title">Выплаты</div></div><span class="chev">›</span></button>
+        <button class="row" data-go="zakat"><div class="main"><div class="title">Калькулятор закята</div></div><span class="chev">›</span></button>
       </div>
       <h2>Связь</h2>
       <div class="group">${support}</div>
       <div class="logo" style="justify-content:center;margin-top:30px;font-size:15px;opacity:.75">${STAR}<span>NAMA<em>.</em></span></div>
+      <p class="note">Цены Мосбиржи — с задержкой 15 минут, обновляются каждые 30 секунд. Процент у цены — изменение за день.</p>
+      <p class="note">${DISCLAIMER}</p>
       <p class="note" style="text-align:center;margin-top:6px">Версия ${APP_VERSION}</p>`;
   },
 
   income() {
+    const { ev, loading, failed, total } = incomeEvents();
+    const upcoming = ev.filter(e => e.future), past = ev.filter(e => !e.future).reverse();
+    const sum = arr => arr.reduce((s, e) => s + (e.amount || 0), 0);
+    const skel = '<div class="row static"><div class="main"><span class="skel" style="width:60%"></span></div></div>';
+    const list = (arr, empty) => loading && !arr.length ? skel + skel
+      : (arr.length ? arr.map(e => `<button class="row pay-row${e.future ? '' : ' past'}" data-go="asset" data-sec="${e.sec}" data-id="${esc(e.a.id)}">${payInner(e)}</button>`).join('') : `<div class="empty">${empty}</div>`);
+    return `
+      ${backLink()}
+      <h1 style="margin-bottom:14px">Выплаты</h1>
+      ${hero(`
+        <div class="hero-top"><span>Ожидается</span><span>${upcoming.length} ${plural(upcoming.length, 'выплата', 'выплаты', 'выплат')}</span></div>
+        <div class="big num">${hid(rub(Math.round(sum(upcoming))))}</div>
+        <div class="sub-line num">Получено за 12 месяцев: ${hid(rub(Math.round(sum(past))))}</div>
+      `)}
+      ${failed ? `<p class="note">Не удалось загрузить данные Мосбиржи по ${failed} из ${total} бумаг. Попробуем снова через пару минут.</p>` : ''}
+      <h2>Впереди</h2>
+      <div class="group">${list(upcoming, 'Объявленных выплат пока нет.')}</div>
+      <h2>За 12 месяцев</h2>
+      <div class="group">${list(past, 'Выплат за год не было.')}</div>
+      <div class="group" style="margin-top:22px"><button class="row" data-go="purify"><div class="main"><div class="title">Очищение</div></div><span class="chev">›</span></button></div>
+      <p class="note">Суммы до налога 13%.</p>`;
+  },
+
+  purify() {
     const { ev, loading, failed, total } = incomeEvents();
     const upcoming = ev.filter(e => e.future), past = ev.filter(e => !e.future).reverse();
     const sum = (arr, f) => arr.reduce((s, e) => s + (f(e) || 0), 0);
@@ -1815,7 +1941,7 @@ const SCREENS = {
     const list = (arr, empty) => loading && !arr.length ? skel + skel : (arr.length ? arr.map(incomeRow).join('') : `<div class="empty">${empty}</div>`);
     return `
       ${backLink()}
-      <h1 style="margin-bottom:14px">Дивиденды и очищение</h1>
+      <h1 style="margin-bottom:14px">Очищение</h1>
       ${hero(`
         <div class="hero-top"><span>К очищению</span><span class="gold">садака</span></div>
         <div class="big num">${rub(due)}</div>
@@ -2316,6 +2442,7 @@ function render(resetScroll = true, anim = null) {
   if (anim) chartAnimate = true;
   mountCharts();
   mountIncome();
+  mountWheel();
   if (c.name === 'passive') drawPiChart();
   justAdded = null;
   if (inTelegram && atLeast('6.1')) { stack.length > 1 ? tg.BackButton.show() : tg.BackButton.hide(); }
@@ -2356,12 +2483,12 @@ function countTotal() {
   const from = shownTotal === null ? 0 : shownTotal;
   shownTotal = to;
   cancelAnimationFrame(countRaf);
-  if (from === to || reduceMotion() || hideSums) { el.textContent = hid(rub(to)); return; }
+  if (from === to || reduceMotion() || hideSums) { el.textContent = hid(rub(Math.round(to))); return; }
   const start = performance.now(), dur = from === 0 ? 1100 : 800;
   const step = now => {
     const k = Math.min(1, (now - start) / dur);
     const e = 1 - Math.pow(1 - k, 3);
-    el.textContent = k < 1 ? rub(Math.round(from + (to - from) * e)) : rub(to);
+    el.textContent = k < 1 ? rub(Math.round(from + (to - from) * e)) : rub(Math.round(to));
     if (k < 1) countRaf = requestAnimationFrame(step);
   };
   el.textContent = rub(Math.round(from));
@@ -2483,7 +2610,7 @@ function incomeTeaser() {
 
 function mountIncome() {
   const name = cur().name;
-  if (name !== 'income' && name !== 'home' && name !== 'passive') return;
+  if (name !== 'income' && name !== 'purify' && name !== 'home' && name !== 'passive') return;
   const need = incomeAssets().filter(({ a, kind }) => {
     const c = incomeCache[kind + '|' + a.id];
     return !c || Date.now() - c.at >= (c.err ? 120000 : INCOME_TTL);
@@ -2856,12 +2983,33 @@ function drawChart(el, s, cu, animate) {
   idle();
 }
 
+// Плавная кривая через точки (Катмулл-Ром → кривые Безье)
+function smoothPath(p) {
+  let d = 'M' + p[0][0].toFixed(1) + ' ' + p[0][1].toFixed(1);
+  for (let i = 0; i < p.length - 1; i++) {
+    const a = p[i - 1] || p[i], b = p[i], c = p[i + 1], e = p[i + 2] || c;
+    const c1 = [b[0] + (c[0] - a[0]) / 6, b[1] + (c[1] - a[1]) / 6], c2 = [c[0] - (e[0] - b[0]) / 6, c[1] - (e[1] - b[1]) / 6];
+    d += ` C${c1[0].toFixed(1)} ${c1[1].toFixed(1)} ${c2[0].toFixed(1)} ${c2[1].toFixed(1)} ${c[0].toFixed(1)} ${c[1].toFixed(1)}`;
+  }
+  return d;
+}
+let sparkSeq = 0;
 function drawSpark(el, s) {
   if (!s || s.v.length < 2) { el.innerHTML = ''; return; }
-  const W = 56, H = 26, n = s.v.length;
-  const pts = geometry(s.v, W, H, 3, 3, 0);
-  const ch = s.v[n - 1] - s.v[0];
-  el.innerHTML = `<svg class="${ch > 0 ? 'up' : ch < 0 ? 'down' : ''}" viewBox="0 0 ${W} ${H}"><path class="c-line" d="${pathOf(pts)}"/></svg>`;
+  // Не больше ~24 точек: мелкие зубцы прячем, форма остаётся
+  const step = Math.max(1, Math.ceil(s.v.length / 24));
+  const v = s.v.filter((_, i) => i % step === 0);
+  if (v[v.length - 1] !== s.v[s.v.length - 1]) v.push(s.v[s.v.length - 1]);
+  const W = 64, H = 30, n = v.length;
+  const pts = geometry(v, W, H, 4, 4, 4);
+  const ch = v[n - 1] - v[0], id = 'spk' + (++sparkSeq);
+  const line = smoothPath(pts), last = pts[n - 1];
+  el.innerHTML = `<svg class="${ch > 0 ? 'up' : ch < 0 ? 'down' : ''}" viewBox="0 0 ${W} ${H}">
+    <defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="currentColor" stop-opacity=".22"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></linearGradient></defs>
+    <path d="${line} L${last[0].toFixed(1)} ${H} L${pts[0][0].toFixed(1)} ${H} Z" fill="url(#${id})"/>
+    <path class="c-line" d="${line}"/>
+    <circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="2.6" fill="currentColor"/>
+  </svg>`;
 }
 
 // Перерисовываем только графики и только при смене ширины экрана.
@@ -2962,7 +3110,7 @@ document.addEventListener('click', () => { if (isPhone() && !tg.isFullscreen) go
 
 
 // ---------- заставка ----------
-const SPLASH_BG = { light: '#0D4A3A', dark: '#0F4F3E' };
+const SPLASH_BG = { light: '#182E21', dark: '#1F3B2B' };
 function splashHeader() {
   if (!inTelegram || !document.getElementById('splash')) return;
   try {
