@@ -109,6 +109,35 @@
   input:focus, select:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(13, 74, 58, .12); }
   .field-hint { font-size: 12px; color: var(--hint); margin-top: 6px; }
   input[type="date"] { min-height: 48px; text-align: left; }
+  /* ===== Форма позиции: поля в одной карточке, как в настройках iPhone ===== */
+  .ed-head { display: flex; align-items: center; gap: 12px; margin: 14px 0 0; }
+  .ed-head .mono { width: 52px; height: 52px; font-size: 20px; }
+  .eh-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .eh-main b { font-size: 18px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .eh-main span { font-size: 13.5px; color: var(--hint); }
+  .eh-price { display: flex; flex-direction: column; align-items: flex-end; font-weight: 600; }
+  .eh-price span { font-size: 13px; }
+  .form-card { background: var(--card); border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; margin-top: 16px; }
+  label.fr { display: flex; align-items: center; gap: 12px; margin: 0; padding: 0 16px; min-height: 52px; border-bottom: 1px solid var(--line); font-size: 16px; color: var(--text); cursor: text; }
+  label.fr:last-child { border-bottom: 0; }
+  .fr > span { flex-shrink: 0; }
+  .fr input, .fr select { flex: 1; min-width: 0; border: 0; border-radius: 0; background: transparent; padding: 14px 0; text-align: right; box-shadow: none !important; }
+  .fr input[type="date"] { min-height: 0; text-align: right; }
+  .fr input[type="date"]::-webkit-date-and-time-value { text-align: right; }
+  .fr select { text-align-last: right; padding-right: 20px; cursor: pointer; color: var(--text);
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23999' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E") right center no-repeat; }
+  .form-hints { font-size: 12.5px; color: var(--hint); line-height: 1.5; margin: 8px 4px 0; }
+  .ed-sum { display: flex; align-items: baseline; gap: 8px; margin: 16px 4px 0; font-size: 15px; }
+  .ed-sum:empty { display: none; }
+  .ed-sum > span:first-child { color: var(--hint); }
+  .ed-actions { position: sticky; bottom: calc(72px + max(env(safe-area-inset-bottom), var(--bottom-inset, 0px))); z-index: 5;
+    margin: 8px -16px 0; padding: 10px 16px 4px; background: linear-gradient(to bottom, transparent, var(--bg) 22%); }
+  /* ===== Пустой раздел ===== */
+  .empty-state { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: 28px 28px 26px; }
+  .empty-state .sec-ic { width: 56px; height: 56px; border-radius: 16px; margin-bottom: 6px; }
+  .empty-state .sec-ic svg { width: 28px; height: 28px; }
+  .empty-state b { font-size: 16px; font-weight: 650; }
+  .empty-state span { font-size: 14px; color: var(--hint); line-height: 1.45; }
   .pct-input { width: 84px; text-align: right; padding: 9px 12px; }
   .pct-wrap { display: flex; align-items: center; gap: 6px; color: var(--hint); }
   .sum-big { font-size: 22px; font-weight: 650; }
@@ -152,7 +181,7 @@
   }
 
   nav {
-    position: fixed; left: 0; right: 0; bottom: 0;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
     display: grid; grid-template-columns: repeat(5, 1fr);
     padding: 6px 4px calc(6px + max(env(safe-area-inset-bottom), var(--bottom-inset, 0px)));
     background: var(--card); border-top: 1px solid var(--line);
@@ -179,6 +208,17 @@
   main.anim-push { animation: in-push .4s var(--ease); }
   main.anim-pop  { animation: in-pop .4s var(--ease); }
   main.anim-tab  { animation: in-tab .34s var(--ease); }
+  /* Переходы как в iPhone: новый экран въезжает справа, старый чуть уходит влево и темнеет */
+  @keyframes slide-in-r   { from { transform: translateX(100%); } }
+  @keyframes slide-in-l   { from { transform: translateX(-28%); filter: brightness(.94); } }
+  @keyframes ghost-out-l  { to { transform: translateX(-28%); filter: brightness(.94); } }
+  @keyframes ghost-out-r  { to { transform: translateX(100%); } }
+  main.slide-push { position: relative; z-index: 2; min-height: 100vh; background: var(--bg); box-shadow: -8px 0 24px rgba(0,0,0,.08); animation: slide-in-r .42s cubic-bezier(.2,.8,.2,1); }
+  main.slide-pop  { animation: slide-in-l .42s cubic-bezier(.2,.8,.2,1); }
+  .screen-ghost { position: fixed; left: 0; right: 0; min-height: 100vh; pointer-events: none; background: var(--bg); }
+  .screen-ghost.ghost-push { z-index: 1; animation: ghost-out-l .42s cubic-bezier(.2,.8,.2,1) forwards; }
+  .screen-ghost.ghost-pop  { z-index: 3; box-shadow: -8px 0 24px rgba(0,0,0,.08); animation: ghost-out-r .42s cubic-bezier(.2,.8,.2,1) forwards; }
+  body { overflow-x: hidden; }
 
   /* Отклик на нажатие */
   .row, .btn, .icon-btn, nav button, .seg button { transition: transform .12s var(--ease), background-color .25s ease, color .25s ease; }
@@ -590,7 +630,7 @@
 // =====================================================================
 
 // Номер версии — виден внизу раздела «Другое». Меняется при каждом обновлении.
-const APP_VERSION = '1.9';
+const APP_VERSION = '2.0';
 
 // Шариатский комитет — экран в разделе «Другое».
 // Пока список пуст, в приложении написано, что состав и заключения скоро появятся.
@@ -765,6 +805,7 @@ const zk = { basis: 'gold', gram: '', cash: '', inv: '', metal: '', recv: '', de
 
 // ---------- форматирование ----------
 const nf = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 });
+const nfq = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 8 });   // количество: 0,031 BTC не округляем до 0,03
 const round2 = v => Math.round(v * 100) / 100;
 const rub = v => nf.format(round2(v)) + ' ₽';
 const sign = v => (v > 0 ? '+' : v < 0 ? '−' : '');
@@ -778,6 +819,9 @@ const signedMoney = (v, c = 'rub') => sign(v) + nf.format(Math.abs(round2(v))) +
 // «Скрыть суммы»: числа в деньгах заменяются точками, проценты остаются
 let hideSums = false;
 let lessonsDone = [];      // id прочитанных уроков: на главной предлагаем следующий
+// Суммы в рублях — без копеек (копейки остаются только в цене за штуку)
+const money0 = (v, c = 'rub') => money(c === 'rub' ? Math.round(v) : v, c);
+const signedMoney0 = (v, c = 'rub') => signedMoney(c === 'rub' ? Math.round(v) : v, c);
 // «Скрыть суммы»: число заменяется точками, знак валюты и «шт.» остаются, проценты не трогаем
 const hid = s => hideSums ? String(s).replace(/[−+]?\d(?:[\d\s\u00a0\u202f.,]*\d)?/g, '••••') : s;
 
@@ -1069,8 +1113,8 @@ function positionRow(sec, p) {
   const value = p.q * price, pl = value - p.q * costOf(p, c);
   return `<button class="row${p.i === justAdded ? ' just-added' : ''}" data-go="edit" data-sec="${sec}" data-pid="${esc(p.i)}">
     ${mono(p.n, p.a)}
-    <div class="main"><div class="title">${esc(p.n)}</div><div class="sub num">${hid(nf.format(p.q) + ' шт.')} по <span class="${p.a ? flashCls(p.a) : ''}">${money(price, c)}</span>${p.a ? changeHtml(p.a, c) : ''}</div></div>
-    <div class="right"><div>${hid(money(value, c))}</div><div class="sub ${tone(pl)}">${hid(signedMoney(pl, c))}</div></div>
+    <div class="main"><div class="title">${esc(p.n)}</div><div class="sub num">${hid(nfq.format(p.q) + ' шт.')} по <span class="${p.a ? flashCls(p.a) : ''}">${money(price, c)}</span>${p.a ? changeHtml(p.a, c) : ''}</div></div>
+    <div class="right"><div>${hid(money0(value, c))}</div><div class="sub ${tone(pl)}">${hid(signedMoney0(pl, c))}</div></div>
   </button>`;
 }
 
@@ -1113,6 +1157,8 @@ function assetCountLabel() {
   return n + ' ' + w;
 }
 const fmtShort = iso => new Date(iso + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+
+const emptyState = (sec, title, text) => `<div class="empty-state"><span class="sec-ic ic-${sec}" aria-hidden="true">${SEC_ICONS[sec]}</span><b>${title}</b><span>${text}</span></div>`;
 
 // Значки разделов на главной
 const SEC_ICONS = {
@@ -1704,7 +1750,7 @@ const SCREENS = {
         ${bar}
       `)}
       <h2>Мои деньги</h2>
-      <div class="group">${rows.length ? rows.join('') : '<div class="empty">Здесь появятся наличные и деньги на картах.</div>'}</div>
+      <div class="group">${rows.length ? rows.join('') : emptyState('cash', 'Пока пусто', 'Добавьте наличные или деньги на карте — они войдут в портфель и в расчёт закята.')}</div>
       <button class="btn" data-go="cash-edit">Добавить деньги</button>
       <h2>Курсы ЦБ${fxDate ? ' на ' + fmtDay(fxDate) : ''}</h2>
       <div class="group">${rates}</div>
@@ -1787,7 +1833,9 @@ const SCREENS = {
       const ghost = positionRow(sec, justRemoved.p).replace('class="row', 'class="row removing');
       rowsHtml.splice(Math.min(justRemoved.index, rowsHtml.length), 0, ghost);
     }
-    const mine = rowsHtml.length ? rowsHtml.join('') : '<div class="empty">Здесь появятся ваши активы.</div>';
+    const mine = rowsHtml.length ? rowsHtml.join('') : emptyState(sec, 'Пока пусто', sec === 'crypto'
+      ? 'Добавьте первую монету — здесь появятся её стоимость и прибыль.'
+      : 'Добавьте первую бумагу — здесь появятся её стоимость и прибыль.');
     const catalog = CATALOG[sec].map(a => `
       <button class="row" data-go="asset" data-sec="${sec}" data-id="${a.id}">
         ${mono(a.name, a.id)}
@@ -1799,10 +1847,10 @@ const SCREENS = {
       <div class="brandbar"><h1 style="margin:0">${info.title}</h1><div class="bb-btns">${eyeBtn()}${themeBtn()}</div></div>
       ${hero(`
         <div class="hero-top"><span>Стоимость раздела</span>${sec === 'crypto' ? curSwitch() : ''}</div>
-        <div class="big mid num" id="sec-total">${hid(money(st.value, cu))}</div>
+        <div class="big mid num" id="sec-total">${hid(money0(st.value, cu))}</div>
         <div class="sub-line num">${pf[sec].length
-          ? `<span class="${tone(st.pl)}">${hid(signedMoney(st.pl, cu))}</span> за всё время`
-          : 'Добавьте первую позицию: здесь появятся её стоимость и график.'}${sec === 'crypto' && usdRub ? `<br>Курс: 1 $ = ${rub(usdRub)}` : ''}</div>
+          ? `<span class="${tone(st.pl)}">${hid(signedMoney0(st.pl, cu))}</span> за всё время`
+          : 'Пока нет позиций'}${sec === 'crypto' && usdRub ? `<br>Курс: 1 $ = ${rub(usdRub)}` : ''}</div>
         ${pf[sec].length ? `<div class="chart" data-chart="section" data-sec="${sec}" data-h="90"></div>${periodSeg()}` : ''}
       `)}
       <h2>Мои позиции</h2>
@@ -1851,28 +1899,24 @@ const SCREENS = {
     return `
       ${backLink()}
       <h1>${p ? 'Изменить позицию' : 'Новая позиция'}</h1>
-      <p class="hint">${SECTION_INFO[sec].title}</p>
-      <label for="f-asset">Актив</label>
-      <select id="f-asset">${options}</select>
-      <div id="f-name-wrap" style="display:${selected === '' ? 'block' : 'none'}">
-        <label for="f-name">Название</label>
-        <input id="f-name" type="text" maxlength="40" value="${p && !p.a ? esc(p.n) : ''}" placeholder="Например, другой сукук">
+      <div class="ed-head" id="f-head"></div>
+      <div class="form-card">
+        <label class="fr"><span>Актив</span><select id="f-asset">${options}</select></label>
+        <label class="fr" id="f-name-wrap" style="display:${selected === '' ? 'flex' : 'none'}"><span>Название</span>
+          <input id="f-name" type="text" maxlength="40" value="${p && !p.a ? esc(p.n) : ''}" placeholder="Например, другой сукук"></label>
+        <label class="fr"><span>Количество</span><input id="f-q" type="text" inputmode="decimal" value="${p ? p.q : ''}" placeholder="0"></label>
+        <label class="fr"><span>Дата покупки</span><input id="f-d" type="date" value="${p && p.d ? p.d : ''}" max="${isoDay(new Date())}"></label>
+        <label class="fr"><span>Цена покупки, ${sym}</span><input id="f-b" type="text" inputmode="decimal" value="${p ? p.b : ''}" placeholder="за ${unit}"></label>
+        <label class="fr" id="f-p-wrap"><span>Цена сейчас, ${sym}</span><input id="f-p" type="text" inputmode="decimal" value="${p ? p.p : ''}" placeholder="как при покупке"></label>
       </div>
-      <label for="f-q">Количество</label>
-      <input id="f-q" type="text" inputmode="decimal" value="${p ? p.q : ''}" placeholder="0">
-      <label for="f-d">Дата покупки</label>
-      <input id="f-d" type="date" value="${p && p.d ? p.d : ''}" max="${isoDay(new Date())}">
-      <div class="field-hint">Нужна, чтобы верно посчитать дивиденды. Если не указать, считаем, что бумага у вас давно.</div>
-      <label for="f-b">Цена покупки за ${unit}, ${sym}</label>
-      <input id="f-b" type="text" inputmode="decimal" value="${p ? p.b : ''}" placeholder="0">
-      ${sec === 'sukuk' ? '<div class="field-hint">Брокер показывает цену в процентах от номинала 1 000 ₽. Например, 100,67% — это 1 006,70 ₽.</div>' : ''}
-      <div id="f-live" class="field-hint" style="font-size:14px;margin-top:16px"></div>
-      <div id="f-p-wrap">
-        <label for="f-p">Текущая цена за ${unit}, ${sym}</label>
-        <input id="f-p" type="text" inputmode="decimal" value="${p ? p.p : ''}" placeholder="Если пусто — равна цене покупки">
-        <div class="field-hint">Для этого актива цена вводится вручную.</div>
+      <div class="form-hints">
+        Дата нужна, чтобы верно посчитать дивиденды. Если её не указать, считаем, что бумага у вас давно.
+        ${sec === 'sukuk' ? '<br>Брокер показывает цену сукука в процентах от номинала 1 000 ₽: 100,67% — это 1 006,70 ₽.' : ''}
+        <span id="f-p-hint"><br>Для этого актива цену сейчас вводите сами.</span>
       </div>
-      <button class="btn" data-act="save">Сохранить</button>
+      <div id="f-live" style="display:none"></div>
+      <div class="ed-sum num" id="f-sum"></div>
+      <div class="ed-actions"><button class="btn" data-act="save">Сохранить</button></div>
       ${p ? '<button class="btn danger" data-act="delete">Удалить позицию</button>' : ''}`;
   },
 
@@ -2391,13 +2435,32 @@ document.addEventListener('input', e => {
 function updatePriceField() {
   const sel = $('#f-asset');
   if (!sel) return;
-  const fc = editCur(cur());
+  const c = cur(), fc = editCur(c);
   const live = livePrice(sel.value, fc);
-  $('#f-name-wrap').style.display = sel.value === '' ? 'block' : 'none';
-  $('#f-p-wrap').style.display = live ? 'none' : 'block';
-  $('#f-live').style.display = live ? 'block' : 'none';
-  $('#f-live').textContent = live ? 'Текущая цена: ' + money(live, fc) + '. Обновляется автоматически.' : '';
+  $('#f-name-wrap').style.display = sel.value === '' ? 'flex' : 'none';
+  $('#f-p-wrap').style.display = live ? 'none' : 'flex';
+  $('#f-p-hint').style.display = live ? 'none' : '';
+  // Шапка: эмблема, название, текущая цена
+  const a = sel.value ? findAsset(c.sec, sel.value) : null;
+  const ch = a ? changes[a.id] : undefined;
+  $('#f-head').innerHTML = a
+    ? `${mono(a.name, a.id)}<div class="eh-main"><b>${esc(a.name)}</b><span>${esc(a.ticker || SECTION_INFO[c.sec].title)}</span></div>
+       <div class="eh-price num">${live ? money(live, fc) : '—'}${typeof ch === 'number' ? `<span class="${tone(ch)}">${sign(ch)}${nf.format(Math.abs(round2(ch)))}%</span>` : ''}</div>`
+    : `<span class="mono">+</span><div class="eh-main"><b>Другой актив</b><span>${SECTION_INFO[c.sec].title} · цену вводите сами</span></div>`;
+  updateEditSum();
 }
+// Под формой: сколько позиция стоит сейчас и прибыль — пересчитывается при вводе
+function updateEditSum() {
+  const el = $('#f-sum'); if (!el) return;
+  const c = cur(), fc = editCur(c);
+  const q = num($('#f-q').value), b = num($('#f-b').value);
+  const live = livePrice($('#f-asset').value, fc);
+  const pNow = live || num($('#f-p').value) || b;
+  if (!(q > 0) || !(pNow > 0)) { el.innerHTML = ''; return; }
+  const value = q * pNow, pl = b > 0 ? value - q * b : 0;
+  el.innerHTML = `<span>Сейчас стоит</span><b>${hid(money0(value, fc))}</b>${b > 0 ? `<span class="${tone(pl)}">${hid(signedMoney0(pl, fc))}</span>` : ''}`;
+}
+document.addEventListener('input', e => { if (['f-q', 'f-b', 'f-p'].includes(e.target.id)) updateEditSum(); });
 
 document.addEventListener('change', e => {
   if (e.target.id === 'f-asset') updatePriceField();
@@ -2418,11 +2481,28 @@ function render(resetScroll = true, anim = null) {
   const c = cur();
   const screen = SCREENS[c.name] || SCREENS.home;
   if (anim && c.name === 'passive') piDraw = true;
+  // Переход «вглубь» и «назад»: старый экран остаётся картинкой и уезжает, новый въезжает целиком
+  const slide = (anim === 'push' || anim === 'pop') && !reduceMotion() && app.innerHTML;
+  if (slide) {
+    document.querySelectorAll('.screen-ghost').forEach(g => g.remove());
+    const g = document.createElement('main');
+    g.className = 'screen-ghost ghost-' + anim;
+    g.setAttribute('aria-hidden', 'true');
+    g.innerHTML = app.innerHTML;
+    g.style.top = -window.scrollY + 'px';
+    document.body.appendChild(g);
+    g.addEventListener('animationend', () => g.remove(), { once: true });
+    setTimeout(() => g.remove(), 800);
+  }
   app.innerHTML = screen(c);
+  if (!app.dataset.slideEnd) {
+    app.dataset.slideEnd = '1';
+    app.addEventListener('animationend', e => { if (e.target === app) app.classList.remove('slide-push', 'slide-pop'); });
+  }
   if (anim) {
-    app.classList.remove('anim-push', 'anim-pop', 'anim-tab');
+    app.classList.remove('anim-push', 'anim-pop', 'anim-tab', 'slide-push', 'slide-pop');
     void app.offsetWidth;               // перезапуск анимации
-    app.classList.add('anim-' + anim);
+    app.classList.add(slide ? 'slide-' + anim : 'anim-' + anim);
   }
   const root = stack[0].name;
   document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === root));
@@ -2431,7 +2511,7 @@ function render(resetScroll = true, anim = null) {
   if (countFrom && countFrom.sec === c.name) {
     const el = $('#sec-total'), cu = dispCur(c.name);
     const to = c.name === 'cash' ? cashTotal() : secTotals(c.name, cu).value;
-    if (el && !hideSums) animateNumber(el, countFrom.from, to, v => money(v, cu), 900, 300);
+    if (el && !hideSums) animateNumber(el, countFrom.from, to, v => money0(v, cu), 900, 300);
   }
   countFrom = null;
   if (justRemoved) {
@@ -2953,7 +3033,7 @@ function drawChart(el, s, cu, animate) {
 
   const idle = () => {
     a.className = 'cm-a hint'; a.textContent = P.word;
-    b.className = 'cm-b ' + tone(ch); b.textContent = pv(signedMoney(ch, cu)) + (base ? ' (' + pctOf(ch, base) + ')' : '');
+    b.className = 'cm-b ' + tone(ch); b.textContent = pv(signedMoney0(ch, cu)) + (base ? ' (' + pctOf(ch, base) + ')' : '');
     cross.setAttribute('visibility', 'hidden');
     dot.setAttribute('cx', pts[n - 1][0]); dot.setAttribute('cy', pts[n - 1][1]);
   };
@@ -2963,7 +3043,7 @@ function drawChart(el, s, cu, animate) {
     const [x, y] = pts[idx];
     cross.setAttribute('x1', x); cross.setAttribute('x2', x); cross.setAttribute('visibility', 'visible');
     dot.setAttribute('cx', x); dot.setAttribute('cy', y);
-    a.className = 'cm-a strong'; a.textContent = pv(money(s.v[idx], cu));
+    a.className = 'cm-a strong'; a.textContent = el.dataset.chart === 'asset' ? money(s.v[idx], cu) : pv(money0(s.v[idx], cu));
     b.className = 'cm-b hint'; b.textContent = fmtDate(s.t[idx], P.id === '1W' || P.id === '1M');
   };
   const indexAt = e => {
